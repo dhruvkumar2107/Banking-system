@@ -1,0 +1,212 @@
+<title>Digital Pigmee Demo Runbook</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground: #F6F8F7;
+    --surface: #FFFFFF;
+    --surface-sunk: #EDF1EF;
+    --ink: #16211E;
+    --ink-soft: #4A5B56;
+    --ink-faint: #6E7F7A;
+    --rule: #D6DEDB;
+    --accent: #0F6E5C;
+    --accent-soft: #E3F0EC;
+    --good: #17795E;
+    --good-soft: #E2F1EA;
+    --warn: #96601A;
+    --warn-soft: #F7EDDC;
+    --crit: #A82A20;
+    --crit-soft: #F8E6E3;
+    --step: 1.5rem;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0E1614;
+      --surface: #16211E;
+      --surface-sunk: #1E2C28;
+      --ink: #E8EFEC;
+      --ink-soft: #A8B8B3;
+      --ink-faint: #7E8F8A;
+      --rule: #2C3B37;
+      --accent: #5FC9AE;
+      --accent-soft: #16302A;
+      --good: #62C79F;
+      --good-soft: #143025;
+      --warn: #D9A council;
+      --warn: #D9A45B;
+      --warn-soft: #33281440;
+      --crit: #E98A7E;
+      --crit-soft: #331C19;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0E1614;
+    --surface: #16211E;
+    --surface-sunk: #1E2C28;
+    --ink: #E8EFEC;
+    --ink-soft: #A8B8B3;
+    --ink-faint: #7E8F8A;
+    --rule: #2C3B37;
+    --accent: #5FC9AE;
+    --accent-soft: #16302A;
+    --good: #62C79F;
+    --good-soft: #143025;
+    --warn: #D9A45B;
+    --warn-soft: #332814;
+    --crit: #E98A7E;
+    --crit-soft: #331C19;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 60rem; margin: 0 auto; padding: 3.5rem 1.5rem 5rem; }
+  header { border-bottom: 2px solid var(--ink); padding-bottom: 1.25rem; margin-bottom: 2.5rem; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .75rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--accent); margin: 0 0 .6rem;
+  }
+  h1 {
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-weight: 600; font-size: clamp(2rem, 5vw, 2.9rem);
+    line-height: 1.1; margin: 0; text-wrap: balance;
+  }
+  .sub { color: var(--ink-soft); margin: .7rem 0 0; max-width: 62ch; }
+  h2 {
+    font-family: "IBM Plex Serif", Georgia, serif;
+    font-weight: 600; font-size: 1.45rem; line-height: 1.25;
+    margin: 3.25rem 0 .35rem; text-wrap: balance;
+  }
+  h2 + .lede { color: var(--ink-soft); margin: 0 0 1.4rem; max-width: 64ch; }
+  h3 { font-size: 1rem; font-weight: 600; margin: 1.75rem 0 .5rem; }
+  p { max-width: 66ch; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  a:focus-visible, code:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .875em; background: var(--surface-sunk);
+    padding: .1em .35em; border-radius: 3px;
+  }
+  pre {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    background: var(--surface-sunk); color: var(--ink);
+    border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+    padding: .9rem 1rem; overflow-x: auto; font-size: .82rem;
+    line-height: 1.55; margin: .6rem 0 0; border-radius: 4px;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  .board { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); margin-top: 1.5rem; }
+  .tier {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-radius: 6px; padding: 1.1rem 1.15rem;
+    display: flex; flex-direction: column; gap: .5rem;
+  }
+  .tier-top { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+  .tier-name { font-weight: 600; font-size: 1.02rem; }
+  .tier-stack {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .72rem; color: var(--ink-faint); letter-spacing: .02em;
+  }
+  .tier-note { font-size: .875rem; color: var(--ink-soft); margin: 0; }
+  .chip {
+    display: inline-flex; align-items: center; gap: .35rem;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .68rem; font-weight: 500; letter-spacing: .07em;
+    text-transform: uppercase; padding: .22rem .5rem;
+    border-radius: 3px; white-space: nowrap;
+  }
+  .chip.live { background: var(--good-soft); color: var(--good); }
+  .chip.part { background: var(--warn-soft); color: var(--warn); }
+  .chip.gap  { background: var(--crit-soft); color: var(--crit); }
+  .dot { width: .42rem; height: .42rem; border-radius: 50%; background: currentColor; }
+  table { width: 100%; border-collapse: collapse; font-size: .9rem; margin-top: .5rem; }
+  th, td { text-align: left; padding: .55rem .7rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+  th {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .7rem; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--ink-faint); font-weight: 500;
+  }
+  td.num { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .scroll { overflow-x: auto; }
+  ol.steps { list-style: none; counter-reset: s; padding: 0; margin: 1.25rem 0 0; }
+  ol.steps > li {
+    counter-increment: s; position: relative;
+    padding-left: 2.75rem; margin-bottom: 1.6rem;
+  }
+  ol.steps > li::before {
+    content: counter(s, decimal-leading-zero);
+    position: absolute; left: 0; top: .05rem;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .78rem; font-weight: 500; color: var(--accent);
+    background: var(--accent-soft); border-radius: 3px;
+    padding: .2rem .4rem; font-variant-numeric: tabular-nums;
+  }
+  ol.steps > li > strong { display: block; margin-bottom: .15rem; }
+  .callout {
+    background: var(--surface); border: 1px solid var(--rule);
+    border-left: 3px solid var(--warn); border-radius: 4px;
+    padding: .9rem 1.1rem; margin: 1.25rem 0 0;
+  }
+  .callout.risk { border-left-color: var(--crit); }
+  .callout p { margin: 0; max-width: 64ch; font-size: .92rem; }
+  .callout p + p { margin-top: .5rem; }
+  .callout-label {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .68rem; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--warn); font-weight: 500; display: block; margin-bottom: .3rem;
+  }
+  .callout.risk .callout-label { color: var(--crit); }
+  ul.plain { padding-left: 1.1rem; }
+  ul.plain li { margin-bottom: .45rem; max-width: 64ch; }
+  footer {
+    margin-top: 4rem; padding-top: 1.25rem; border-top: 1px solid var(--rule);
+    font-size: .82rem; color: var(--ink-faint);
+  }
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">Verified 21 Aug 2026 · localhost demo</p>
+  <h1>Digital Pigmee Demo Runbook</h1>
+  <p class="sub">Three tiers, what is actually running, and the exact commands to bring them up. Every status below was checked against a live server, not inferred from the build plan.</p>
+</header>
+
+<h2>What is running right now</h2>
+<p class="lede">Both servers are up on this machine and detached, so they survive until you stop them or reboot.</p>
+
+<div class="board">
+  <div class="tier">
+    <div class="tier-top">
+      <span class="tier-name">Savings API</span>
+      <span class="chip live"><span class="dot"></span>Live</span>
+    </div>
+    <p class="tier-stack">NestJS · PGlite · port 4000</p>
+    <p class="tier-note">84 documented operations. 143 tests green. Payments in <code>mock</code> mode.</p>
+  </div>
+  <div class="tier">
+    <div class="tier-top">
+      <span class="tier-name">Admin panel</span>
+      <span class="chip live"><span class="dot"></span>Live</span>
+    </div>
+    <p class="tier-stack">Next.js 14 · port 3000</p>
+    <p class="tier-note">21 routes prerendered. Collection, customers, withdrawals, reports, audit.</p>
+  </div>
+  <div class="tier">
+    <div class="tier-top">
+      <span class="tier-name">Customer app</span>
+      <span class="chip part"><span class="dot"></span>Builds, not wired</span>
+    </div>
+    <p class="tier-stack">Flutter · Android APK</p>
+    <p class="tier-note">Compiles clean again after today's fixes. Deposits and KYC work; withdrawals are branch-only.</p>
+  </div>
+</div>
+
+<!-- SECTION-BREAK-A -->
+</div>

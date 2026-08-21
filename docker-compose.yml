@@ -1,0 +1,98 @@
+# Digital Pigmee — full-stack local / self-hosted deployment.
+#
+#   docker compose up --build          # Postgres + API + Admin, all wired together
+#   docker compose up -d db            # ONLY Postgres (for running `npm run dev:*` on the host)
+#
+# Then seed the first superadmin (one-time):
+#   docker compose exec api node dist/db/seed.js
+#
+# Every value defaults to a DEV-SAFE setting so this runs with zero config for a
+# demo. Before exposing anything publicly, override the secrets via a root `.env`
+# file (copy `.env.docker.example`) or your shell environment.
+#
+# App URLs (default):  Admin http://localhost:3000   API http://localhost:4000/docs
+
+name: digital-pigmee
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: pigmee-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-pigmee}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-pigmee}
+      POSTGRES_DB: ${POSTGRES_DB:-pigmee}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pigmee_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-pigmee}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    image: pigmee-api
+    container_name: pigmee-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # `staging` by default so the zero-config demo boots: with NODE_ENV=production
+      # the API deliberately refuses to start while payments are mocked, OTPs are
+      # echoed, or JWT secrets are still the dev defaults. Set NODE_ENV=production
+      # in your `.env` once real Razorpay/SMS credentials and secrets are in place —
+      # the bootstrap check then verifies them for you.
+      NODE_ENV: ${NODE_ENV:-staging}
+      PORT: "4000"
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:4000}
+      # Presence of DATABASE_URL switches the API from embedded PGlite to Postgres.
+      DATABASE_URL: postgres://${POSTGRES_USER:-pigmee}:${POSTGRES_PASSWORD:-pigmee}@db:5432/${POSTGRES_DB:-pigmee}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-dev_access_secret_change_me}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_refresh_secret_change_me}
+      # Dev echo returns the OTP in the API response so the demo needs no SMS gateway.
+      OTP_DEV_ECHO: ${OTP_DEV_ECHO:-true}
+      SMS_PROVIDER: ${SMS_PROVIDER:-console}
+      # Payments stay in mock mode until real Razorpay keys are supplied.
+      PAYMENTS_MODE: ${PAYMENTS_MODE:-mock}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_WEBHOOK_SECRET: ${RAZORPAY_WEBHOOK_SECRET:-dev_webhook_secret_change_me}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      SEED_SUPERADMIN_EMAIL: ${SEED_SUPERADMIN_EMAIL:-admin@pigmee.bank}
+      SEED_SUPERADMIN_PASSWORD: ${SEED_SUPERADMIN_PASSWORD:-Admin@12345}
+      # KYC photos/documents. Relative to WORKDIR (/repo/apps/api), so this maps
+      # onto the pigmee_uploads volume mounted below.
+      UPLOAD_DIR: ${UPLOAD_DIR:-storage/uploads}
+      UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-5242880}
+    volumes:
+      # Customer PII — must survive `docker compose down` and container rebuilds.
+      - pigmee_uploads:/repo/apps/api/storage
+    ports:
+      - "${API_PORT:-4000}:4000"
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        # Baked into the browser bundle at build time — must be the URL the
+        # user's browser can reach, including the /api suffix.
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:4000/api}
+    image: pigmee-admin
+    container_name: pigmee-admin
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "${ADMIN_PORT:-3000}:3000"
+
+volumes:
+  pigmee_pgdata:
+  pigmee_uploads:

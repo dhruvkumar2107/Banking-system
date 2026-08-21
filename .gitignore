@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Local database (PGlite file store)
+.data/
+apps/api/.data/
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# Generated
+apps/api/src/db/migrations/meta/_journal.json.bak
+coverage/
+
+# Receipts / uploads (local dev)
+apps/api/storage/
+uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Flutter
+apps/customer/.dart_tool/
+apps/customer/build/
+apps/customer/.flutter-plugins
+apps/customer/.flutter-plugins-dependencies
+apps/customer/.packages
+apps/customer/**/GeneratedPluginRegistrant.*
+
+# Android signing — never commit the upload keystore or its passwords
+**/key.properties
+!**/key.properties.example
+*.jks
+*.keystore
+*.p12
+*.pfx
+
+# Uploaded KYC photos and documents — customer PII, never in version control
+apps/api/storage/
+
+# Temporary files
+*.tmp

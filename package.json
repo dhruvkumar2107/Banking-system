@@ -1,0 +1,24 @@
+{
+  "name": "digital-pigmee",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Digital Pigmee — Corporate Bank Daily Micro-Savings platform (API + Admin + Customer App)",
+  "workspaces": [
+    "apps/api",
+    "apps/admin"
+  ],
+  "scripts": {
+    "dev:api": "npm --workspace apps/api run start:dev",
+    "dev:admin": "npm --workspace apps/admin run dev",
+    "build:api": "npm --workspace apps/api run build",
+    "build:admin": "npm --workspace apps/admin run build",
+    "migrate": "npm --workspace apps/api run migrate",
+    "seed": "npm --workspace apps/api run seed",
+    "test:api": "npm --workspace apps/api run test",
+    "test:e2e": "npm --workspace apps/api run test:e2e",
+    "verify:docker": "node scripts/verify-docker-context.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

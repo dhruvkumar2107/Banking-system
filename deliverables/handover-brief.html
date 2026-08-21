@@ -1,0 +1,721 @@
+<title>Digital Pigmee Handover</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap">
+
+<style>
+  :root {
+    /* light — cool paper, biased toward the teal accent */
+    --ground: #F2F5F4;
+    --surface: #FFFFFF;
+    --surface-sunk: #E9EEEC;
+    --border: #D3DEDA;
+    --border-strong: #B6C6C1;
+    --ink: #101F1C;
+    --ink-soft: #3D5150;
+    --ink-faint: #6B807D;
+    --accent: #0E6B5C;
+    --accent-soft: #E0EFEA;
+    --accent-ink: #08453B;
+    --blocker: #A8332F;
+    --blocker-soft: #F7E5E3;
+    --decision: #8A5A02;
+    --decision-soft: #F8EDD8;
+    --polish: #2C5C86;
+    --polish-soft: #E3EDF5;
+    --shadow: 0 1px 2px rgba(16, 31, 28, .05), 0 8px 24px -16px rgba(16, 31, 28, .18);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground: #0B1614;
+      --surface: #12201E;
+      --surface-sunk: #0E1A18;
+      --border: #243935;
+      --border-strong: #375049;
+      --ink: #E8F0EE;
+      --ink-soft: #A9BCB8;
+      --ink-faint: #7C918D;
+      --accent: #4FBFA5;
+      --accent-soft: #14322C;
+      --accent-ink: #8FD9C6;
+      --blocker: #E98B85;
+      --blocker-soft: #34201F;
+      --decision: #DCA94A;
+      --decision-soft: #302716;
+      --polish: #85B3D8;
+      --polish-soft: #162835;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -16px rgba(0, 0, 0, .6);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground: #0B1614;
+    --surface: #12201E;
+    --surface-sunk: #0E1A18;
+    --border: #243935;
+    --border-strong: #375049;
+    --ink: #E8F0EE;
+    --ink-soft: #A9BCB8;
+    --ink-faint: #7C918D;
+    --accent: #4FBFA5;
+    --accent-soft: #14322C;
+    --accent-ink: #8FD9C6;
+    --blocker: #E98B85;
+    --blocker-soft: #34201F;
+    --decision: #DCA94A;
+    --decision-soft: #302716;
+    --polish: #85B3D8;
+    --polish-soft: #162835;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -16px rgba(0, 0, 0, .6);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: clamp(1.75rem, 4vw, 4rem) clamp(1.1rem, 4vw, 2.5rem) 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: clamp(2.5rem, 5vw, 4rem);
+  }
+
+  /* ---------- masthead ---------- */
+
+  .masthead { display: flex; flex-direction: column; gap: 1.5rem; }
+
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .7rem;
+    font-weight: 500;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem .9rem;
+    align-items: center;
+  }
+
+  .eyebrow .rule { flex: 1; min-width: 1.5rem; height: 1px; background: var(--border); }
+
+  h1 {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: clamp(2.3rem, 6vw, 3.6rem);
+    font-weight: 500;
+    line-height: 1.06;
+    letter-spacing: -.015em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .standfirst {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: clamp(1.1rem, 2.4vw, 1.35rem);
+    line-height: 1.5;
+    color: var(--ink-soft);
+    max-width: 40ch;
+    margin: 0;
+  }
+
+  .standfirst em { color: var(--accent); font-style: italic; }
+
+  /* ---------- stat strip ---------- */
+
+  .proof {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--surface);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .stat {
+    padding: 1.1rem 1.2rem;
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: .15rem;
+  }
+
+  .stat:last-child { border-right: 0; }
+
+  .stat .n {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 1.7rem;
+    font-weight: 500;
+    letter-spacing: -.02em;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    line-height: 1.1;
+  }
+
+  .stat .l {
+    font-size: .74rem;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  /* ---------- sections ---------- */
+
+  section { display: flex; flex-direction: column; gap: 1.4rem; }
+
+  h2 {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: clamp(1.5rem, 3.2vw, 2rem);
+    font-weight: 500;
+    line-height: 1.2;
+    letter-spacing: -.01em;
+    margin: 0;
+    padding-bottom: .6rem;
+    border-bottom: 2px solid var(--ink);
+    text-wrap: balance;
+  }
+
+  h3 {
+    font-family: "IBM Plex Sans", sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: -.005em;
+  }
+
+  p { margin: 0; max-width: 68ch; }
+  .prose { display: flex; flex-direction: column; gap: .9rem; }
+  .lede { color: var(--ink-soft); }
+
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .85em;
+    background: var(--surface-sunk);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: .1em .35em;
+  }
+
+  /* ---------- tables ---------- */
+
+  .scroller { overflow-x: auto; border: 1px solid var(--border); border-radius: 3px; background: var(--surface); }
+
+  table { border-collapse: collapse; width: 100%; min-width: 34rem; font-size: .9rem; }
+
+  th, td { text-align: left; padding: .7rem .95rem; border-bottom: 1px solid var(--border); }
+
+  thead th {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .68rem;
+    font-weight: 500;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    background: var(--surface-sunk);
+    white-space: nowrap;
+  }
+
+  tbody tr:last-child td { border-bottom: 0; }
+
+  td.mono, th.mono {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .82rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .ok { color: var(--accent); font-weight: 500; white-space: nowrap; }
+
+  /* ---------- graded input list ---------- */
+
+  .grades {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem;
+  }
+
+  .key {
+    display: inline-flex;
+    align-items: baseline;
+    gap: .5rem;
+    font-size: .8rem;
+    color: var(--ink-soft);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 2px;
+    padding: .35rem .6rem;
+  }
+
+  .tag {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .7rem;
+    font-weight: 600;
+    letter-spacing: .06em;
+    border-radius: 2px;
+    padding: .12rem .4rem;
+    white-space: nowrap;
+  }
+
+  .tag.a { background: var(--blocker-soft); color: var(--blocker); }
+  .tag.b { background: var(--decision-soft); color: var(--decision); }
+  .tag.c { background: var(--polish-soft); color: var(--polish); }
+
+  .items { display: flex; flex-direction: column; gap: .8rem; }
+
+  .item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--stripe, var(--border-strong));
+    border-radius: 3px;
+    padding: 1.05rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+  }
+
+  .item.a { --stripe: var(--blocker); }
+  .item.b { --stripe: var(--decision); }
+  .item.c { --stripe: var(--polish); }
+
+  .item-head { display: flex; flex-wrap: wrap; gap: .6rem; align-items: baseline; }
+  .item-head .ref {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--ink-faint);
+  }
+
+  .item p { font-size: .92rem; color: var(--ink-soft); max-width: 70ch; }
+
+  .need {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    font-size: .89rem;
+  }
+
+  .need li { padding-left: 1.1rem; position: relative; color: var(--ink-soft); }
+
+  .need li::before {
+    content: "";
+    position: absolute;
+    left: .1rem;
+    top: .62em;
+    width: .34rem;
+    height: .34rem;
+    border: 1px solid var(--accent);
+    border-radius: 50%;
+  }
+
+  /* ---------- the one big decision ---------- */
+
+  .decision-callout {
+    background: var(--surface);
+    border: 1px solid var(--decision);
+    border-radius: 3px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .decision-callout .bar {
+    background: var(--decision-soft);
+    border-bottom: 1px solid var(--decision);
+    padding: .7rem 1.3rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .5rem .8rem;
+    align-items: baseline;
+  }
+
+  .decision-callout .bar strong {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: .74rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--decision);
+  }
+
+  .decision-callout .body {
+    padding: 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: .9rem;
+  }
+
+  .decision-callout h3 {
+    font-family: "Newsreader", Georgia, serif;
+    font-size: 1.45rem;
+    font-weight: 500;
+    letter-spacing: -.01em;
+  }
+
+  .qs {
+    margin: 0;
+    padding-left: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+    font-size: .92rem;
+    color: var(--ink-soft);
+  }
+
+  .qs li::marker { color: var(--decision); font-family: "IBM Plex Mono", monospace; font-size: .85em; }
+
+  /* ---------- ordered path ---------- */
+
+  .path { display: flex; flex-direction: column; gap: .7rem; counter-reset: step; }
+
+  .step {
+    display: flex;
+    gap: .95rem;
+    align-items: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: .9rem 1.1rem;
+  }
+
+  .step::before {
+    counter-increment: step;
+    content: counter(step);
+    flex: none;
+    width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 50%;
+    background: var(--accent-soft);
+    color: var(--accent-ink);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: .8rem;
+    font-weight: 600;
+    display: grid;
+    place-items: center;
+    margin-top: .1rem;
+  }
+
+  .step div { font-size: .92rem; }
+  .step strong { color: var(--ink); font-weight: 600; }
+  .step span { color: var(--ink-faint); }
+
+  /* ---------- closing ---------- */
+
+  .done {
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: 3px;
+    padding: 1.2rem 1.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+  }
+
+  .done h3 { color: var(--accent-ink); }
+  .done p { color: var(--accent-ink); font-size: .92rem; opacity: .92; }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 1.2rem;
+    font-size: .82rem;
+    color: var(--ink-faint);
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem 1.5rem;
+  }
+
+  footer .mono { font-family: "IBM Plex Mono", monospace; }
+
+  @media (max-width: 34rem) {
+    .stat { border-right: 0; border-bottom: 1px solid var(--border); }
+    .stat:last-child { border-bottom: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">
+      <span>Delivery handover</span>
+      <span class="rule"></span>
+      <span>v0.1.0 &middot; 20 Aug 2026</span>
+    </div>
+    <h1>Digital Pigmee</h1>
+    <p class="standfirst">
+      Three tiers built, tested and running end&#8209;to&#8209;end. <em>43 automated tests
+      pass.</em> What remains needs the bank's credentials — and one product decision.
+    </p>
+  </header>
+
+  <div class="proof">
+    <div class="stat"><span class="n">43</span><span class="l">Tests passing</span></div>
+    <div class="stat"><span class="n">56</span><span class="l">API endpoints</span></div>
+    <div class="stat"><span class="n">18</span><span class="l">Admin pages</span></div>
+    <div class="stat"><span class="n">17</span><span class="l">App screens</span></div>
+    <div class="stat"><span class="n">0</span><span class="l">Open defects</span></div>
+  </div>
+
+  <section>
+    <h2>What is built</h2>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>Tier</th><th>Stack</th><th class="mono">Scope</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>API</strong></td><td>NestJS &middot; Drizzle &middot; Postgres</td><td class="mono">56 endpoints</td><td class="ok">Complete</td></tr>
+          <tr><td><strong>Admin panel</strong></td><td>Next.js 14 &middot; Tailwind</td><td class="mono">18 pages</td><td class="ok">Complete</td></tr>
+          <tr><td><strong>Customer app</strong></td><td>Flutter &middot; Android</td><td class="mono">17 screens</td><td class="ok">Complete</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <p class="lede">
+        The design rule the whole system is built on: an account balance is
+        <strong>never directly writable</strong>. Every rupee moves through an
+        append-only ledger entry, so balances are derived and the audit trail cannot
+        be edited after the fact. This is enforced in the service layer, not the UI.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Proof it works</h2>
+    <p class="lede">Every check below was run on the delivery machine today.</p>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>Check</th><th class="mono">Command</th><th>Result</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>API typecheck</td><td class="mono">tsc --noEmit</td><td class="ok">exit 0</td></tr>
+          <tr><td>API unit tests</td><td class="mono">npm run test:api</td><td class="ok">36 / 36</td></tr>
+          <tr><td>API end-to-end</td><td class="mono">npm run test:e2e</td><td class="ok">7 / 7</td></tr>
+          <tr><td>Admin build</td><td class="mono">npm run build:admin</td><td class="ok">18 routes</td></tr>
+          <tr><td>Flutter analysis</td><td class="mono">flutter analyze lib</td><td class="ok">0 issues</td></tr>
+          <tr><td>Android APK</td><td class="mono">build apk --release</td><td class="ok">55.0 MB</td></tr>
+          <tr><td>Play Store bundle</td><td class="mono">build appbundle</td><td class="ok">54.0 MB</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="prose">
+      <p>
+        The money path is tested specifically: a customer registers, pays &#8377;100 through
+        the gateway, and the dashboard shows &#8377;100. A <strong>tampered payment signature
+        is rejected</strong>, and <strong>replaying a payment cannot double-credit</strong> the
+        account. A village-scoped admin is blocked from reading or changing another
+        village's customers.
+      </p>
+      <p class="lede">
+        Verified live over HTTP as well: landing, health, Swagger, admin login, the
+        dashboard totals (12 customers, &#8377;4,700.00 held), and the village-wise report all
+        returned real seeded data.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>What I need from you</h2>
+    <p class="lede">
+      Nothing here blocks a demo — the system runs today with mock payments and
+      console OTPs. This is what turns a working build into a live banking product.
+    </p>
+    <div class="grades">
+      <span class="key"><span class="tag a">A</span> Hard blocker for production</span>
+      <span class="key"><span class="tag b">B</span> Scope decision</span>
+      <span class="key"><span class="tag c">C</span> Before public launch</span>
+    </div>
+
+    <div class="items">
+      <div class="item a">
+        <div class="item-head"><span class="tag a">A1</span><h3>Razorpay live account</h3></div>
+        <p>
+          Payments run in mock mode: the full flow works, but no real money moves.
+          Signature verification and idempotency are real, tested code — only keys are missing.
+        </p>
+        <ul class="need">
+          <li>Live key ID and key secret</li>
+          <li>A webhook secret you choose, registered against <code>/api/payments/webhook</code></li>
+          <li>Confirmation of the settlement account</li>
+          <li><strong>Decide:</strong> who absorbs the ~2% gateway fee — the bank, or the customer's deposit? It changes the ledger math.</li>
+        </ul>
+      </div>
+
+      <div class="item a">
+        <div class="item-head"><span class="tag a">A2</span><h3>SMS gateway for OTP login</h3></div>
+        <p>
+          MSG91 and Twilio are both fully implemented — pick one and send credentials.
+          Today OTPs print to the server log.
+        </p>
+        <ul class="need">
+          <li>MSG91: auth key, approved 6-character sender ID, and a TRAI DLT registered template</li>
+          <li>Twilio: account SID, auth token, sending number</li>
+          <li><strong>Start the DLT registration first</strong> — it is the longest external lead time on this page, and carriers silently drop unregistered transactional SMS</li>
+        </ul>
+      </div>
+
+      <div class="item a">
+        <div class="item-head"><span class="tag a">A3</span><h3>Production database</h3></div>
+        <p>
+          Runs today on an embedded database — ideal for demos, unsuitable for production.
+          A managed Postgres 14+ connection string switches it over with no code change.
+        </p>
+        <ul class="need">
+          <li>Managed Postgres connection string</li>
+          <li>Backup schedule and retention — this is a ledger, so point-in-time recovery matters more than usual</li>
+        </ul>
+      </div>
+
+      <div class="item a">
+        <div class="item-head"><span class="tag a">A4</span><h3>Hosting, domains, and ownership</h3></div>
+        <p>
+          Self-hosted Docker, a managed platform, or the bank's own infrastructure — all
+          three are documented and supported.
+        </p>
+        <ul class="need">
+          <li>Two domains, e.g. <code>api.</code> and <code>admin.</code>, plus TLS</li>
+          <li>Who runs operations day to day</li>
+          <li><strong>Needed before the production admin build:</strong> the final API domain is compiled into the admin bundle and cannot be changed by editing a config file later</li>
+        </ul>
+      </div>
+
+      <div class="item b">
+        <div class="item-head"><span class="tag b">B2</span><h3>Is there a field agent role?</h3></div>
+        <p>
+          The build plan has customers paying from their own phones. Most real pigmy
+          schemes have an agent collecting cash door to door. If that is in scope we need
+          an agent role, a collection screen, cash-vs-digital reconciliation and a
+          settlement report. Today there are two roles: village-scoped admin, and superadmin.
+        </p>
+      </div>
+
+      <div class="item b">
+        <div class="item-head"><span class="tag b">B3</span><h3>Business rules to pin down</h3></div>
+        <ul class="need">
+          <li>Minimum and maximum deposit per day, and any per-customer cap</li>
+          <li>Missed-day handling — a reminder fires after 3 days; is there a penalty or only a nudge?</li>
+          <li>Which KYC documents count, and who is authorised to approve them</li>
+          <li>The process when a payment is charged wrongly</li>
+          <li>Audit log retention period — likely 8–10 years, and it drives storage sizing</li>
+        </ul>
+      </div>
+
+      <div class="item c">
+        <div class="item-head"><span class="tag c">C1–C5</span><h3>Before public launch</h3></div>
+        <ul class="need">
+          <li><strong>Branding:</strong> bank name, logo, app icon, colours — and confirm the Android package name, which is <em>permanent</em> once published</li>
+          <li><strong>Play Store:</strong> listing copy, screenshots, and a hosted privacy policy URL (Google rejects financial apps without one)</li>
+          <li><strong>Upload keystore:</strong> the signing mechanism is wired and ready. I did not generate the key — whoever holds it controls all future updates, and losing it means the app can never be updated. That custody call is the bank's</li>
+          <li><strong>Hindi copy:</strong> the app ships English and Hindi; my Hindi banking terms need a native-speaker review</li>
+          <li><strong>Legal:</strong> T&amp;Cs, privacy policy, data-residency rules, and whether InfoSec requires a penetration test — worth scheduling early, as it can gate go-live by weeks</li>
+          <li><strong>Real data:</strong> the true village and admin lists, and whether existing paper balances must be imported as opening ledger entries</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The one open product decision</h2>
+    <div class="decision-callout">
+      <div class="bar">
+        <span class="tag b">B1</span>
+        <strong>Needs your answer before scope can be called complete</strong>
+      </div>
+      <div class="body">
+        <h3>Withdrawals, maturity and interest are not built</h3>
+        <p>
+          The system today handles <strong>deposits only</strong>. There is no way for a
+          customer to withdraw, close an account, or receive maturity proceeds. The ledger
+          already supports debits, so the foundation is there — but no withdrawal flow was
+          in the build plan, so none was built, and I would rather ask than guess at a
+          bank's rules.
+        </p>
+        <ol class="qs">
+          <li>Do pigmy accounts have a fixed term? What happens at the end of it?</li>
+          <li>Is interest paid — at what rate, compounded how? None is calculated today.</li>
+          <li>Can a customer withdraw early? Full or partial, and is there a penalty?</li>
+          <li>Where does money go out to — the saved bank account, or cash at the branch?</li>
+          <li>Who authorises a withdrawal? For a bank I would expect maker-checker approval, which is real work to build properly.</li>
+        </ol>
+        <p>
+          Until this is answered, the product is a <strong>collection-only</strong> system.
+          That may be exactly right for phase one — I just need it stated, because it is the
+          difference between a finished phase and half a savings product.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Fastest path to a live pilot</h2>
+    <div class="path">
+      <div class="step"><div><strong>Start the MSG91 DLT template registration.</strong> <span>Longest external lead time — everything else can run in parallel.</span></div></div>
+      <div class="step"><div><strong>Answer B1, withdrawals and maturity.</strong> <span>Decides whether the scope is complete or phase two starts now.</span></div></div>
+      <div class="step"><div><strong>Provision Postgres and confirm the two domains.</strong> <span>Unblocks a real deployment; needed before the admin bundle is built.</span></div></div>
+      <div class="step"><div><strong>Supply the Razorpay live keys.</strong> <span>Flips payments from mock to real money.</span></div></div>
+    </div>
+    <div class="prose">
+      <p>
+        With those four answered, a UAT deployment on real infrastructure with mock money
+        is about a day's work. Go-live then waits only on Razorpay activation and your
+        sign-off on B1.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Where things honestly stand</h2>
+    <div class="prose">
+      <p>
+        <strong>Complete and verified:</strong> all three tiers, 43 passing tests, both
+        Android artifacts, the full deposit money path, the security model, and the
+        documentation.
+      </p>
+      <p>
+        <strong>Written but not verifiable here:</strong> the Docker images (Docker is not
+        installed on this machine), and the SMS and live-payment integrations — real code
+        paths, mock-tested, but never run against the real services. Expect a short
+        shake-out when credentials land.
+      </p>
+      <p>
+        <strong>Deliberately mock, clearly labelled:</strong> payments and OTP delivery.
+        Both flip to real through configuration alone.
+      </p>
+      <p>
+        <strong>Not built:</strong> withdrawals, maturity and interest — see B1 above.
+      </p>
+    </div>
+    <div class="done">
+      <h3>Needs nothing from you</h3>
+      <p>
+        The API and its 56 endpoints, the admin panel, the customer app and its two build
+        artifacts, the append-only ledger, role-based access and village isolation, audit
+        logging, OTP rate limiting, webhook signature verification and idempotent
+        settlement, scheduled reminders and payment reconciliation, Docker packaging, 43
+        automated tests, and the full developer documentation. All done.
+      </p>
+    </div>
+  </section>
+
+  <footer>
+    <span class="mono">Digital Pigmee v0.1.0</span>
+    <span>Handover prepared 20 August 2026</span>
+    <span>Detail in <span class="mono">deliverables/HANDOVER.md</span> and <span class="mono">PROJECT-HEAD-INPUTS.md</span></span>
+  </footer>
+
+</div>

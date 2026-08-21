@@ -1,0 +1,25 @@
+# ─────────────────────────────────────────────────────────────
+# Android release signing — copy to `android/key.properties`
+#
+# This file is intentionally NOT committed (see .gitignore). The bank owns the
+# upload keystore; losing it means you can no longer ship updates to an existing
+# Play Store listing, so store it in the company password manager / secret vault
+# and keep an offline backup.
+#
+# Generate the keystore (JDK 17 ships keytool):
+#
+#   keytool -genkey -v \
+#     -keystore pigmee-upload.jks \
+#     -storetype JKS \
+#     -keyalg RSA -keysize 2048 -validity 10000 \
+#     -alias pigmee-upload
+#
+# Put the resulting .jks under apps/customer/android/ (or give an absolute path
+# below), then fill in the four values. `flutter build appbundle --release`
+# will pick it up automatically.
+# ─────────────────────────────────────────────────────────────
+
+storeFile=pigmee-upload.jks
+storePassword=CHANGE_ME
+keyAlias=pigmee-upload
+keyPassword=CHANGE_ME

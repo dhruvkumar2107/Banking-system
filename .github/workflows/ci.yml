@@ -1,0 +1,155 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  api:
+    name: API (build + test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:api
+      - run: npm run test:api
+      - run: npm run test:e2e
+
+  admin:
+    name: Admin panel (build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:admin
+
+  customer:
+    name: Customer app (Flutter analyze)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - working-directory: apps/customer
+        run: |
+          flutter pub get
+          flutter analyze
+
+  docker:
+    name: Docker images (build + smoke test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+
+      # Cheap static check first: catches a COPY source that is missing or is
+      # shadowed by .dockerignore, and compose/CI image-tag drift, before paying
+      # for a full image build.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:api
+      - run: npm run build:admin
+      - run: npm run verify:docker
+
+      # Both Dockerfiles take the monorepo ROOT as context — npm workspaces
+      # hoist node_modules to /repo, so a per-app context cannot resolve deps.
+      # Tags match the `image:` names in docker-compose.yml so the compose smoke
+      # test below can run with --no-build against these exact images.
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          tags: pigmee-api:latest
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build admin image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: apps/admin/Dockerfile
+          tags: pigmee-admin:latest
+          load: true
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=http://localhost:4000/api
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # A compiled image that cannot boot is not a verified image. Bring the real
+      # stack up and prove both services answer over HTTP.
+      - name: Start the stack
+        run: docker compose up -d --no-build db api admin
+        env:
+          POSTGRES_PASSWORD: ci_pg_password
+
+      - name: Wait for the API to become healthy
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:4000/health > /dev/null; then
+              echo "API healthy after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::API never became healthy"
+          docker compose logs api
+          exit 1
+
+      - name: Smoke test the API
+        run: |
+          set -euo pipefail
+          # Liveness and the landing route live OUTSIDE the /api prefix.
+          curl -fsS http://localhost:4000/health | tee /dev/stderr | grep -q '"status":"ok"'
+          curl -fsS http://localhost:4000/ | grep -q '"docs"'
+          curl -fsS http://localhost:4000/docs > /dev/null
+          # An unauthenticated protected route must be rejected, not served.
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:4000/api/me)" = "401"
+          # A public route must still work.
+          curl -fsS http://localhost:4000/api/public/villages > /dev/null
+
+      - name: Smoke test the admin panel
+        run: |
+          for i in $(seq 1 60); do
+            if curl -fsS http://localhost:3000/login > /dev/null; then
+              echo "Admin healthy after ${i}s"; exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::Admin panel never served /login"
+          docker compose logs admin
+          exit 1
+
+      - name: Seed and verify the superadmin bootstrap
+        run: docker compose exec -T api node dist/db/seed.js
+
+      - name: Verify admin login works end to end
+        run: |
+          set -euo pipefail
+          code=$(curl -s -o /tmp/login.json -w '%{http_code}' \
+            -X POST http://localhost:4000/api/auth/admin/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"admin@pigmee.bank","password":"Admin@12345"}')
+          test "$code" = "200" || { echo "::error::admin login returned $code"; cat /tmp/login.json; exit 1; }
+          grep -q 'accessToken' /tmp/login.json
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose logs
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v

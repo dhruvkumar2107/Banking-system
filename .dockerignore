@@ -1,0 +1,37 @@
+# Keep the Docker build context small and correct. Build context is the monorepo
+# root, so this single file governs both apps/api and apps/admin image builds.
+
+# Dependencies — reinstalled fresh inside the image with `npm ci`.
+node_modules
+apps/*/node_modules
+
+# Build outputs — recompiled inside the image.
+apps/api/dist
+apps/admin/.next
+apps/admin/out
+
+# Local database file store (PGlite) — never ship into an image.
+apps/api/.data
+
+# Env files — inject via compose / runtime, never bake secrets into layers.
+**/.env
+**/.env.*
+!**/.env.example
+
+# Flutter app — not part of the API/admin images.
+apps/customer
+
+# VCS, tooling, docs, local noise.
+.git
+.gitignore
+.github
+.vscode
+.idea
+**/*.log
+**/coverage
+Digital-Pigmee-Build-Plan.pdf
+extracted.txt
+
+# The Dockerfiles themselves don't need to be in the context.
+apps/api/Dockerfile
+apps/admin/Dockerfile

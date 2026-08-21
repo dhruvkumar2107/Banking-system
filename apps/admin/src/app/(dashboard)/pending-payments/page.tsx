@@ -1,0 +1,76 @@
+'use client';
+
+import { useState } from 'react';
+import { Clock } from 'lucide-react';
+import { usePendingPayments, useVillages } from '@/lib/hooks';
+import {
+  PageHeader,
+  Card,
+  CardBody,
+  CardHeader,
+  Select,
+  Field,
+  Pagination,
+  Badge,
+} from '@/components/ui';
+import { TransactionsTable } from '@/components/TransactionsTable';
+
+export default function PendingPaymentsPage() {
+  const [villageId, setVillageId] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 20;
+
+  const villages = useVillages();
+  const pending = usePendingPayments({ villageId: villageId || undefined, page, limit });
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Pending Payments"
+        subtitle="Payments awaiting confirmation or settlement."
+      />
+
+      <Card>
+        <CardHeader
+          title={
+            <span className="inline-flex items-center gap-2">
+              <Clock size={16} className="text-amber-500" /> Awaiting settlement
+            </span>
+          }
+          action={
+            pending.data ? <Badge tone="amber">{pending.data.total} pending</Badge> : null
+          }
+        />
+        <CardBody className="space-y-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <Field label="Village" className="w-56">
+              <Select value={villageId} onChange={(e) => { setVillageId(e.target.value); setPage(1); }}>
+                <option value="">All villages</option>
+                {villages.data?.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name}</option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+
+          <TransactionsTable
+            rows={pending.data?.data}
+            loading={pending.isLoading}
+            error={pending.isError}
+            emptyLabel="No pending payments — all settled 🎉"
+          />
+
+          {pending.data && (
+            <Pagination
+              page={pending.data.page}
+              pages={pending.data.pages}
+              total={pending.data.total}
+              limit={pending.data.limit}
+              onPage={setPage}
+            />
+          )}
+        </CardBody>
+      </Card>
+    </div>
+  );
+}
