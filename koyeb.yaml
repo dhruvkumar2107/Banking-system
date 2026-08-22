@@ -1,58 +1,88 @@
-# Koyeb deployment config for Digital Pigmee API
-# Usage:
-# 1. Create Neon DB at https://neon.tech (copy connection string)
-# 2. Push this repo to GitHub
-# 3. In Koyeb: Create App → GitHub → Select repo → Builder: Dockerfile → Dockerfile: apps/api/Dockerfile
-# 4. Add env vars below in Koyeb dashboard
-# 5. Deploy → Run seed in Console: npm run seed
-
+# ─────────────────────────────────────────────────────────────────────────────
+# Koyeb deployment config for the Digital Pigmee API.
+# Render is the primary target (see render.yaml + docs/DEPLOY.md); this is the
+# equivalent for Koyeb.
+#
+# 1. Create a Postgres (Neon or Render) and copy the connection string.
+# 2. Koyeb: Create App → GitHub → this repo → Builder: Dockerfile
+#    → Dockerfile path: apps/api/Dockerfile → Work directory: / (repo root).
+# 3. Set the env vars below in the Koyeb dashboard. Everything marked SECRET
+#    should be a Koyeb secret, not a plaintext value.
+# 4. Migrations apply on boot; SEED_ON_BOOT creates the superadmin.
+#
+# NOTE: the values below are a template. Do not commit real secrets to git —
+# the JWT/webhook secrets that used to live in this file are in git history and
+# should be treated as compromised and rotated.
+# ─────────────────────────────────────────────────────────────────────────────
 name: pigmee-api
 git:
   branch: main
-  repo: your-github-username/digital-pigmee  # CHANGE THIS
+  repo: dhruvkumar2107/Banking-system
 builder: dockerfile
 dockerfile: apps/api/Dockerfile
+# The Dockerfile installs npm workspaces from the repo root, so the build
+# context must be the root, not apps/api.
+context: .
 ports:
   - port: 4000
     protocol: http
     expose: true
+health_checks:
+  - port: 4000
+    protocol: http
+    path: /health
 env:
   - name: NODE_ENV
     value: production
   - name: PORT
     value: "4000"
-  - name: API_BASE_URL
-    value: https://pigmee-api-<your-org>.koyeb.app  # CHANGE AFTER DEPLOY
-  - name: DATABASE_URL
-    value: postgres://user:pass@ep-xxx.us-east-1.aws.neon.tech/pigmee?sslmode=require  # REPLACE WITH NEON URL
-  - name: JWT_ACCESS_SECRET
-    value: NRPy2wgBSFISM44TTyh3uEZmGeRFyb+Eu80I9+1N+Hc=
-  - name: JWT_REFRESH_SECRET
-    value: E6v2sD2dg5d5WWFLXmoVHKSfEiE5YPmNCKUbH6fgcWw=
-  - name: OTP_DEV_ECHO
-    value: "false"
-  - name: SMS_PROVIDER
-    value: console
+
+  # Allows NODE_ENV=production with the mock gateway + console SMS. Strict CORS
+  # and OTP secrecy are still enforced; dev-default secrets and OTP echo still
+  # refuse to boot. Set false for the real go-live with live keys.
+  - name: DEMO_MODE
+    value: "true"
   - name: PAYMENTS_MODE
     value: mock
-  - name: CORS_ORIGINS
-    value: https://your-admin.vercel.app,https://your-customer.vercel.app  # CHANGE
-  - name: SEED_SUPERADMIN_EMAIL
-    value: admin@yourdomain.com  # CHANGE
-  - name: SEED_SUPERADMIN_PASSWORD
-    value: CHANGE_ME_STRONG_PASSWORD  # CHANGE
+  - name: SMS_PROVIDER
+    value: console
+  - name: OTP_DEV_ECHO
+    value: "false"
+
+  # Neon: use the DIRECT (non-pooled) URL, ?sslmode=require — DDL runs on boot.
+  - name: DATABASE_URL
+    value: "<<< SECRET: postgres://user:pass@host/db?sslmode=require >>>"
+  # Generate with: openssl rand -base64 32
+  - name: JWT_ACCESS_SECRET
+    value: "<<< SECRET: 32-byte random >>>"
+  - name: JWT_REFRESH_SECRET
+    value: "<<< SECRET: 32-byte random >>>"
+  - name: RAZORPAY_WEBHOOK_SECRET
+    value: "<<< SECRET: 32-byte random >>>"
   - name: RAZORPAY_KEY_ID
     value: ""
   - name: RAZORPAY_KEY_SECRET
     value: ""
-  - name: RAZORPAY_WEBHOOK_SECRET
-    value: 00032b30444a41d8536993d136bd5c1f1ed8715ad50d3aacd268bb032efa49f6
+
+  # Must include the deployed admin origin or every browser call fails CORS.
+  - name: CORS_ORIGINS
+    value: "<<< FILL: https://your-admin.vercel.app,https://your-customer.vercel.app >>>"
+  # Idempotent; runs after the port opens so it cannot fail the health check.
+  # Boot refuses if the password is left at the demo default.
+  - name: SEED_ON_BOOT
+    value: "true"
+  - name: SEED_SUPERADMIN_EMAIL
+    value: "<<< FILL: admin@yourdomain.com >>>"
+  - name: SEED_SUPERADMIN_PASSWORD
+    value: "<<< SECRET: strong password >>>"
+  # Koyeb's filesystem is ephemeral — KYC photos are lost on redeploy. Move to
+  # object storage before real customer KYC.
   - name: UPLOAD_DIR
     value: storage/uploads
   - name: UPLOAD_MAX_BYTES
     value: "5242880"
 regions:
-  - was  # Washington DC (free tier)
+  - was
 instance_type: free
 min_instances: 1
 max_instances: 1

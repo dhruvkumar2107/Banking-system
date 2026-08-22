@@ -87,6 +87,8 @@ Copy `.env.example` and replace **every** dev-labelled secret:
 | Variable                                        | Notes                                        |
 | ----------------------------------------------- | -------------------------------------------- |
 | `NODE_ENV=production`                            |                                              |
+| `DEMO_MODE`                                      | `true` to allow mock payments + console SMS in prod (see below) |
+| `SEED_ON_BOOT`                                   | `true` to seed the superadmin on first boot (no shell needed)   |
 | `PORT`, `API_BASE_URL`                           | Public URL of the API                        |
 | `DATABASE_URL`                                   | Managed Postgres (TLS)                       |
 | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`        | **Long random values** — rotate on leak      |
@@ -107,12 +109,70 @@ Point the Razorpay dashboard webhook at `POST /api/payments/webhook` and set
 body** (enabled in `main.ts`) to verify the HMAC signature, and payment credits
 are **idempotent** on the order id.
 
-### Example: Railway / Render
+### Production boot guard — and why a deploy can build fine then die
 
-- Build command: `npm install && npm run build:api`
-- Start command: `node apps/api/dist/main.js`
-- Add a managed Postgres plugin and set `DATABASE_URL` from it.
-- Set the environment variables above. Health/docs: `GET /docs`.
+Under `NODE_ENV=production` the API refuses to boot if the config would
+self-sign mock payments, echo OTP codes, or run on dev-default secrets. The
+container therefore **builds successfully and then exits 1 on every start**,
+which managed hosts report as a failed deploy or a crash loop rather than a build
+error. The logs are explicit:
+
+```
+ERROR [Bootstrap] Production readiness: Payments are in MOCK mode — ...
+ERROR [Bootstrap] Production readiness: SMS_PROVIDER=console — ...
+Refusing to start in production with 2 configuration issue(s)
+```
+
+For a mock-money demo or UAT deploy, set **`DEMO_MODE=true`**. That downgrades
+exactly two checks — mock gateway and console SMS — to startup warnings, so the
+deploy runs under `NODE_ENV=production` and keeps the strict CORS allow-list and
+OTP secrecy. These still refuse to boot in demo mode:
+
+| Condition | Why it stays fatal |
+| --- | --- |
+| `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET` at dev default | Anyone could forge admin tokens |
+| `OTP_DEV_ECHO=true` | OTP codes returned in API responses = free login |
+| `DATABASE_URL` unset | Falls back to PGlite, wiped on every redeploy |
+| `SMS_PROVIDER=msg91`/`twilio` with missing creds | A real provider chosen but misconfigured |
+| `SEED_ON_BOOT=true` with the default seed password | Known credentials on a public URL |
+
+> Do **not** work around the guard with `NODE_ENV=staging`. That also disables
+> the production CORS allow-list (every origin accepted) and defaults OTP echo
+> back on.
+
+### Example: Render (Blueprint)
+
+`render.yaml` at the repo root deploys the API as a Docker service with
+`healthCheckPath: /health`.
+
+1. Render → **New → Blueprint** → select the repo → **Apply**.
+2. Render prompts for the vars marked `sync: false`:
+   `DATABASE_URL`, `CORS_ORIGINS`, `SEED_SUPERADMIN_EMAIL`,
+   `SEED_SUPERADMIN_PASSWORD`. The `JWT_*` and webhook secrets are generated
+   automatically.
+3. Verify: `curl https://<api-host>/health` → `{"status":"ok",...}`.
+4. Set `SEED_ON_BOOT=false` once the data exists.
+
+Region must match your Render Postgres if you use its **Internal** URL, or the
+hostname will not resolve. With **Neon**, use the **direct (non-pooled)** URL
+ending `?sslmode=require` — migrations run DDL on boot, which is unreliable over
+the pooled endpoint.
+
+Build command / start command do not apply: the image is built from
+`apps/api/Dockerfile` with the **repo root** as build context (the image installs
+npm workspaces from the root).
+
+### Example: Koyeb
+
+Use `koyeb.yaml`. Same variables, set as Koyeb secrets rather than plaintext.
+Builder `dockerfile`, Dockerfile `apps/api/Dockerfile`, work directory `/`.
+
+### Seeding without a shell
+
+Free tiers give you no shell, so `npm run seed` cannot be run post-deploy.
+`SEED_ON_BOOT=true` seeds on startup instead — idempotent, and started only
+*after* the port opens so a slow seed cannot fail the platform health check. A
+seed failure is logged and leaves the API serving.
 
 ---
 
@@ -129,6 +189,18 @@ npm --workspace apps/admin run start   # or deploy to Vercel
 Set **`NEXT_PUBLIC_API_BASE_URL`** to the public API URL (including the `/api`
 suffix), e.g. `https://api.pigmee.bank/api`. Add the admin's own origin to the
 API's `CORS_ORIGINS`.
+
+Two things reliably bite on Vercel:
+
+- **The `/api` suffix is required.** Every route is served under the `/api`
+  prefix; without it every request 404s.
+- **`NEXT_PUBLIC_*` is inlined at build time.** Setting it in the Vercel
+  dashboard is not enough — you must **redeploy** afterwards. An admin built
+  before the var was set still calls `http://localhost:4000/api`, which from the
+  browser looks exactly like "the API is down".
+
+Preview deployments get their own `*.vercel.app` hostnames; add them to
+`CORS_ORIGINS` too, or test against the production domain only.
 
 ---
 

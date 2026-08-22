@@ -18,13 +18,21 @@ async function bootstrap() {
   const appConfig = app.get(AppConfigService);
   const cfg = appConfig.config;
 
-  // Fail fast: never boot a production deploy that would self-sign mock payments,
-  // echo OTP codes, or run on dev-default secrets.
-  const readiness = appConfig.productionReadinessIssues();
-  if (readiness.length > 0) {
-    for (const issue of readiness) logger.error(`Production readiness: ${issue}`);
+  // Fail fast: never boot a production deploy that would echo OTP codes or run
+  // on dev-default secrets. With DEMO_MODE=true the mock gateway and console SMS
+  // are downgraded to warnings so a hosted demo can still run under
+  // NODE_ENV=production (keeping strict CORS and OTP secrecy).
+  const readiness = appConfig.productionReadiness();
+  for (const warning of readiness.warnings) {
+    logger.warn(`DEMO_MODE: ${warning}`);
+  }
+  if (readiness.warnings.length > 0) {
+    logger.warn('Running in DEMO_MODE — not suitable for real customer money.');
+  }
+  if (readiness.fatal.length > 0) {
+    for (const issue of readiness.fatal) logger.error(`Production readiness: ${issue}`);
     throw new Error(
-      `Refusing to start in production with ${readiness.length} configuration issue(s) — see logs above.`,
+      `Refusing to start in production with ${readiness.fatal.length} configuration issue(s) — see logs above.`,
     );
   }
 
@@ -100,10 +108,25 @@ async function bootstrap() {
     swaggerOptions: { persistAuthorization: true },
   });
 
-  await app.listen(cfg.port);
+  // Bind 0.0.0.0 explicitly: managed hosts (Render, Koyeb, Fly) route to the
+  // container's external interface and treat a loopback-only bind as a failed
+  // health check.
+  await app.listen(cfg.port, '0.0.0.0');
   logger.log(`Digital Pigmee API listening on ${cfg.apiBaseUrl}`);
   logger.log(`Swagger docs at ${cfg.apiBaseUrl}/docs`);
   logger.log(`Payments mode: ${cfg.razorpay.mode}`);
+
+  // Free tiers on managed hosts give you no shell, so `npm run seed` can never
+  // be run after a deploy. SEED_ON_BOOT covers that: idempotent, and started
+  // only after listen() so a multi-second seed cannot fail the health check.
+  if (cfg.seed.onBoot) {
+    // Imported lazily so the seed module (and its demo data) stays out of the
+    // server process entirely unless it is actually asked for.
+    const { runSeed } = await import('./db/seed');
+    runSeed(app)
+      .then(() => logger.log('SEED_ON_BOOT complete'))
+      .catch((err) => logger.error('SEED_ON_BOOT failed — API stays up', err as Error));
+  }
 }
 
 bootstrap().catch((err) => {

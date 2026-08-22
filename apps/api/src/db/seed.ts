@@ -1,6 +1,6 @@
 import 'reflect-metadata';
 import 'dotenv/config';
-import { Logger } from '@nestjs/common';
+import { Logger, type INestApplicationContext } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { eq, lte } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
@@ -16,19 +16,6 @@ import { PaymentsService } from '../modules/payments/payments.service';
 import { addDays, DEFAULT_SCHEME } from '../modules/withdrawals/scheme.service';
 
 const log = new Logger('Seed');
-
-// Surface anything that would otherwise let the event loop drain silently
-// (e.g. a swallowed rejection deep in the payment/ledger path).
-process.on('unhandledRejection', (reason) => {
-  // eslint-disable-next-line no-console
-  console.error('[seed] UNHANDLED REJECTION', reason);
-  process.exit(1);
-});
-process.on('uncaughtException', (err) => {
-  // eslint-disable-next-line no-console
-  console.error('[seed] UNCAUGHT EXCEPTION', err);
-  process.exit(1);
-});
 
 const VILLAGES = [
   { name: 'Rampur', code: 'RMP' },
@@ -187,15 +174,13 @@ async function seedMaturedDemoAccount(db: AppDatabase) {
   log.log(`Backdated ${target.accountNumber} to matured (demo maturity + interest flow)`);
 }
 
-async function main() {
-  const app = await NestFactory.createApplicationContext(AppModule, {
-    logger: ['error', 'warn', 'log'],
-  });
-
-  const bundle = app.get<DbBundle>(DB_BUNDLE);
-  await applyMigrations(bundle);
-  log.log(`Migrations applied (dialect=${bundle.dialect})`);
-
+/**
+ * Seed an already-running Nest context. Every step is idempotent, so this is
+ * safe to call repeatedly — on each boot with SEED_ON_BOOT=true, or by hand via
+ * `npm run seed`. The caller owns the context lifecycle and the schema: apply
+ * migrations before calling this.
+ */
+export async function runSeed(app: INestApplicationContext): Promise<void> {
   const db = app.get<AppDatabase>(DATABASE);
   const cfg = app.get(AppConfigService).config;
   const customersSvc = app.get(CustomersService, { strict: false });
@@ -208,13 +193,49 @@ async function main() {
   await seedMaturedDemoAccount(db);
 
   log.log('Seed complete ✔');
-  log.log(`  Admin login: ${cfg.seed.email} / ${cfg.seed.password}`);
+  // Never print the password into a hosted platform's log store.
+  log.log(
+    cfg.isProd
+      ? `  Admin login: ${cfg.seed.email} / (SEED_SUPERADMIN_PASSWORD)`
+      : `  Admin login: ${cfg.seed.email} / ${cfg.seed.password}`,
+  );
+}
+
+/** CLI entrypoint: `npm run seed` → builds its own context, seeds, exits. */
+async function main() {
+  // Surface anything that would otherwise let the event loop drain silently
+  // (e.g. a swallowed rejection deep in the payment/ledger path).
+  process.on('unhandledRejection', (reason) => {
+    // eslint-disable-next-line no-console
+    console.error('[seed] UNHANDLED REJECTION', reason);
+    process.exit(1);
+  });
+  process.on('uncaughtException', (err) => {
+    // eslint-disable-next-line no-console
+    console.error('[seed] UNCAUGHT EXCEPTION', err);
+    process.exit(1);
+  });
+
+  const app = await NestFactory.createApplicationContext(AppModule, {
+    logger: ['error', 'warn', 'log'],
+  });
+
+  const bundle = app.get<DbBundle>(DB_BUNDLE);
+  await applyMigrations(bundle);
+  log.log(`Migrations applied (dialect=${bundle.dialect})`);
+
+  await runSeed(app);
+
   await app.close();
   process.exit(0);
 }
 
-main().catch((err) => {
-  // eslint-disable-next-line no-console
-  console.error('[seed] failed', err);
-  process.exit(1);
-});
+// Only self-execute as a script. Without this guard, importing runSeed from the
+// API bootstrap would spin up a second Nest context and exit the process.
+if (require.main === module) {
+  main().catch((err) => {
+    // eslint-disable-next-line no-console
+    console.error('[seed] failed', err);
+    process.exit(1);
+  });
+}

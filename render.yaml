@@ -1,0 +1,101 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Render Blueprint — Digital Pigmee API
+#
+# Deploy:
+#   1. Push this file to GitHub on `main`.
+#   2. Render dashboard → New → Blueprint → pick this repo → Apply.
+#   3. Render prompts for every var marked `sync: false` (see docs/DEPLOY.md).
+#   4. First boot applies migrations automatically; SEED_ON_BOOT creates the
+#      superadmin (free tier has no shell, so `npm run seed` is not an option).
+#
+# This blueprint deliberately does NOT declare a database — a Postgres instance
+# already exists. DATABASE_URL is entered at deploy time, so nothing here can
+# create or overwrite a database.
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  - type: web
+    name: pigmee-api
+    runtime: docker
+    plan: free
+    # Must match the region of your Render Postgres, otherwise the internal
+    # connection string will not resolve. Ignore if you are using Neon.
+    region: oregon
+    branch: main
+    # The Dockerfile installs npm workspaces from the repo root, so the build
+    # context has to be the root — not apps/api.
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    # Outside the /api prefix and unauthenticated by design.
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Matches EXPOSE 4000 in the Dockerfile. Render honours an explicit PORT.
+      - key: PORT
+        value: "4000"
+
+      # ── Demo posture ───────────────────────────────────────────────────────
+      # Lets the API boot under NODE_ENV=production while still using the mock
+      # payment gateway and console SMS. Strict CORS and OTP secrecy are kept;
+      # dev-default secrets and OTP echo still refuse to boot. Set to false for
+      # the real go-live, and supply live Razorpay keys + an SMS provider.
+      - key: DEMO_MODE
+        value: "true"
+      - key: PAYMENTS_MODE
+        value: mock
+      - key: SMS_PROVIDER
+        value: console
+      # Must stay false in production — true would return OTP codes in API
+      # responses to any caller.
+      - key: OTP_DEV_ECHO
+        value: "false"
+
+      # ── Database ───────────────────────────────────────────────────────────
+      # Paste either the Render Postgres *Internal* Database URL (same region)
+      # or the Neon connection string (must end with ?sslmode=require).
+      # For Neon, prefer the DIRECT (non-pooled) URL: migrations run DDL on boot.
+      - key: DATABASE_URL
+        sync: false
+
+      # ── Secrets ────────────────────────────────────────────────────────────
+      # Generated once by Render and then held stable. Rotating these
+      # invalidates every issued access/refresh token.
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: RAZORPAY_WEBHOOK_SECRET
+        generateValue: true
+      - key: RAZORPAY_KEY_ID
+        value: ""
+      - key: RAZORPAY_KEY_SECRET
+        value: ""
+
+      # ── Admin/customer origins ─────────────────────────────────────────────
+      # Comma-separated, scheme included, no trailing slash. In production the
+      # API only accepts browser calls from these origins, so the Vercel admin
+      # domain MUST be listed here or every request fails CORS.
+      #   e.g. https://pigmee-admin.vercel.app,https://pigmee-customer.vercel.app
+      - key: CORS_ORIGINS
+        sync: false
+
+      # ── First-boot seed ────────────────────────────────────────────────────
+      # Idempotent, and started after the port opens so it cannot fail the
+      # health check. Set SEED_ON_BOOT=false once the data exists.
+      - key: SEED_ON_BOOT
+        value: "true"
+      - key: SEED_SUPERADMIN_EMAIL
+        sync: false
+      # Boot refuses if this is left at the documented demo default.
+      - key: SEED_SUPERADMIN_PASSWORD
+        sync: false
+
+      # ── Uploads ────────────────────────────────────────────────────────────
+      # NOTE: Render's filesystem is ephemeral — KYC photos written here are
+      # lost on redeploy. Attach a persistent disk (paid plan) or move to object
+      # storage before real customer KYC.
+      - key: UPLOAD_DIR
+        value: storage/uploads
+      - key: UPLOAD_MAX_BYTES
+        value: "5242880"
