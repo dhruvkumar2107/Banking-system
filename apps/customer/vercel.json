@@ -1,13 +1,9 @@
 {
-  "buildCommand": "flutter build web --release --dart-define=API_BASE_URL=https://YOUR_API_URL.koyeb.app/api",
+  "buildCommand": "git clone https://github.com/flutter/flutter.git -b stable --depth 1 _flutter_sdk && export PATH=\"$PATH:$(pwd)/_flutter_sdk/bin\" && flutter config --enable-web && flutter pub get && flutter build web --release --dart-define=API_BASE_URL=https://banking-system-zhtb.onrender.com/api",
   "outputDirectory": "build/web",
-  "devCommand": "flutter run -d web-server --web-port 3000",
-  "installCommand": "flutter pub get",
+  "installCommand": "echo skip",
   "framework": null,
   "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
