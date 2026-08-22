@@ -21,7 +21,6 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { ReportsModule } from './modules/reports/reports.module';
 import { AdminsModule } from './modules/admins/admins.module';
 import { MeModule } from './modules/me/me.module';
-import { UploadsModule } from './modules/uploads/uploads.module';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -72,7 +71,6 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     ReportsModule,
     AdminsModule,
     MeModule,
-    UploadsModule,
   ],
   providers: [
     // Order matters: throttle first, then authenticate, then authorize, and only
