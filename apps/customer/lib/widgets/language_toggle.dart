@@ -4,18 +4,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme.dart';
 import '../state/locale_controller.dart';
 
-/// Compact English / हिन्दी segmented toggle bound to [localeControllerProvider].
+/// Compact EN / हि / ಕ segmented toggle bound to [localeControllerProvider].
+///
+/// Built from [kSupportedLocales] rather than hardcoded segments, so shipping
+/// another language needs no change here.
 class LanguageToggle extends ConsumerWidget {
   const LanguageToggle({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final Locale locale = ref.watch(localeControllerProvider);
-    final bool isHi = locale.languageCode == 'hi';
 
-    Widget segment(String code, String label, bool selected) {
+    Widget segment(Locale l) {
+      final bool selected = l.languageCode == locale.languageCode;
       return GestureDetector(
-        onTap: () => ref.read(localeControllerProvider.notifier).setLocale(Locale(code)),
+        onTap: () => ref.read(localeControllerProvider.notifier).setLocale(l),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
@@ -24,7 +27,7 @@ class LanguageToggle extends ConsumerWidget {
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
-            label,
+            kLocaleShortLabels[l.languageCode] ?? l.languageCode.toUpperCase(),
             style: TextStyle(
               color: selected ? Colors.white : PigmeeColors.inkMuted,
               fontWeight: FontWeight.w700,
@@ -44,10 +47,7 @@ class LanguageToggle extends ConsumerWidget {
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          segment('en', 'EN', !isHi),
-          segment('hi', 'हि', isHi),
-        ],
+        children: kSupportedLocales.map(segment).toList(),
       ),
     );
   }

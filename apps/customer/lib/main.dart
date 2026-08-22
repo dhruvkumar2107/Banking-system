@@ -75,7 +75,7 @@ class PigmeeApp extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(32),
                       boxShadow: <BoxShadow>[
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.5),
+                          color: Colors.black.withValues(alpha: 0.5),
                           blurRadius: 40,
                           spreadRadius: 4,
                           offset: const Offset(0, 16),

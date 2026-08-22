@@ -5,6 +5,7 @@ import { Map } from 'lucide-react';
 import Link from 'next/link';
 import { useVillageWise } from '@/lib/hooks';
 import { money, inr } from '@/lib/format';
+import { useT } from '@/lib/i18n';
 import {
   PageHeader,
   Card,
@@ -27,6 +28,7 @@ import {
 } from '@/components/ui';
 
 export default function VillageWiseReportsPage() {
+  const t = useT();
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
 
@@ -47,30 +49,30 @@ export default function VillageWiseReportsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Village-wise Reports" subtitle="Balances and collections broken down by village." />
+      <PageHeader title={t('reports.villageWiseTitle')} subtitle={t('reports.villageWiseSubtitle')} />
 
       <Card>
         <CardBody>
           <div className="flex flex-wrap items-end gap-3">
-            <Field label="Collected from" className="w-40"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
-            <Field label="Collected to" className="w-40"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
-            <Button variant="outline" onClick={() => { setFrom(''); setTo(''); }}>Reset</Button>
+            <Field label={t('reports.collectedFrom')} className="w-40"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
+            <Field label={t('reports.collectedTo')} className="w-40"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
+            <Button variant="outline" onClick={() => { setFrom(''); setTo(''); }}>{t('common.reset')}</Button>
           </div>
         </CardBody>
       </Card>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total Balance" value={inr(totals.balance)} tone="green" />
-        <StatCard label="Collected (range)" value={inr(totals.collected)} tone="indigo" />
-        <StatCard label="Customers" value={totals.customers} tone="amber" />
-        <StatCard label="Accounts" value={totals.accounts} tone="slate" />
+        <StatCard label={t('reports.totalBalance')} value={inr(totals.balance)} tone="green" />
+        <StatCard label={t('reports.collectedRange')} value={inr(totals.collected)} tone="indigo" />
+        <StatCard label={t('common.customers')} value={totals.customers} tone="amber" />
+        <StatCard label={t('common.accounts')} value={totals.accounts} tone="slate" />
       </div>
 
       <Card>
-        <CardHeader title="By village" />
+        <CardHeader title={t('reports.byVillage')} />
         <CardBody>
           {report.isError ? (
-            <ErrorState message="Could not load report." />
+            <ErrorState message={t('reports.loadError')} />
           ) : report.isLoading ? (
             <LoadingBlock />
           ) : report.data && report.data.length ? (
@@ -78,13 +80,13 @@ export default function VillageWiseReportsPage() {
               <Table>
                 <Thead>
                   <Tr>
-                    <Th>Village</Th>
-                    <Th>Customers</Th>
-                    <Th>Accounts</Th>
-                    <Th>Balance</Th>
-                    <Th>Deposited</Th>
-                    <Th>Collected</Th>
-                    <Th>Success Txns</Th>
+                    <Th>{t('common.village')}</Th>
+                    <Th>{t('common.customers')}</Th>
+                    <Th>{t('common.accounts')}</Th>
+                    <Th>{t('common.balance')}</Th>
+                    <Th>{t('common.deposited')}</Th>
+                    <Th>{t('common.collected')}</Th>
+                    <Th>{t('reports.successTxns')}</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -108,7 +110,7 @@ export default function VillageWiseReportsPage() {
               </Table>
             </TableWrap>
           ) : (
-            <EmptyState title="No villages yet" icon={<Map size={22} />} />
+            <EmptyState title={t('reports.noVillages')} icon={<Map size={22} />} />
           )}
         </CardBody>
       </Card>

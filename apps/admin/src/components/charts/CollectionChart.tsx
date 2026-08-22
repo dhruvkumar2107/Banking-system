@@ -10,6 +10,7 @@ import {
   YAxis,
 } from 'recharts';
 import { inr, inrCompact } from '@/lib/format';
+import { useT } from '@/lib/i18n';
 import { useChartTheme } from './theme';
 
 export interface CollectionPoint {
@@ -18,7 +19,8 @@ export interface CollectionPoint {
 }
 
 export function CollectionChart({ data, height = 280 }: { data: CollectionPoint[]; height?: number }) {
-  const t = useChartTheme();
+  const theme = useChartTheme();
+  const t = useT();
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
@@ -34,32 +36,32 @@ export function CollectionChart({ data, height = 280 }: { data: CollectionPoint[
             <stop offset="100%" stopColor="#22d3ee" />
           </linearGradient>
         </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke={t.grid} vertical={false} />
+        <CartesianGrid strokeDasharray="3 3" stroke={theme.grid} vertical={false} />
         <XAxis
           dataKey="label"
-          tick={{ fontSize: 11, fill: t.tick }}
-          axisLine={{ stroke: t.axis }}
+          tick={{ fontSize: 11, fill: theme.tick }}
+          axisLine={{ stroke: theme.axis }}
           tickLine={false}
           minTickGap={24}
         />
         <YAxis
           tickFormatter={(v) => inrCompact(Number(v))}
-          tick={{ fontSize: 11, fill: t.tick }}
+          tick={{ fontSize: 11, fill: theme.tick }}
           axisLine={false}
           tickLine={false}
           width={60}
         />
         <Tooltip
-          formatter={(v) => [inr(Number(v)), 'Collected']}
+          formatter={(v) => [inr(Number(v)), t('analytics.chartCollected')]}
           contentStyle={{
             borderRadius: 12,
-            border: `1px solid ${t.tooltipBorder}`,
-            background: t.tooltipBg,
+            border: `1px solid ${theme.tooltipBorder}`,
+            background: theme.tooltipBg,
             fontSize: 12,
             boxShadow: '0 10px 30px -10px rgb(15 23 42 / 0.25)',
           }}
-          labelStyle={{ color: t.tick }}
-          itemStyle={{ color: t.tooltipText }}
+          labelStyle={{ color: theme.tick }}
+          itemStyle={{ color: theme.tooltipText }}
           cursor={{ stroke: '#8b5cf6', strokeWidth: 1, strokeDasharray: '4 4' }}
         />
         <Area

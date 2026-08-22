@@ -4,11 +4,14 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { PiggyBank, LogIn, ShieldCheck, TrendingUp, Landmark } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { useT } from '@/lib/i18n';
+import { LanguageToggle } from '@/components/layout/LanguageToggle';
 import { Button, Field, Input } from '@/components/ui';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, status } = useAuth();
+  const t = useT();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +29,7 @@ export default function LoginPage() {
       await login(email.trim(), password);
       router.replace('/dashboard');
     } catch (err) {
-      setError((err as Error).message || 'Login failed');
+      setError((err as Error).message || t('auth.loginFailed'));
     } finally {
       setSubmitting(false);
     }
@@ -63,20 +66,19 @@ export default function LoginPage() {
         <div className="relative space-y-8">
           <div className="space-y-4">
             <h1 className="text-4xl font-bold leading-[1.1] tracking-tight">
-              Daily micro-savings,
+              {t('auth.heroTitleLine1')}
               <br />
-              managed with confidence.
+              {t('auth.heroTitleLine2')}
             </h1>
             <p className="max-w-md text-[15px] leading-relaxed text-brand-100">
-              Track village-wise collections, verify payments, and keep every rupee reconciled — all
-              from one intelligent corporate console.
+              {t('auth.heroSubtitle')}
             </p>
           </div>
           <ul className="space-y-3.5">
             {[
-              { icon: TrendingUp, text: 'Real-time collection analytics' },
-              { icon: Landmark, text: 'Village-wise balances & reconciliation' },
-              { icon: ShieldCheck, text: 'Bank-grade security & audit trail' },
+              { icon: TrendingUp, text: t('auth.featureAnalytics') },
+              { icon: Landmark, text: t('auth.featureReconciliation') },
+              { icon: ShieldCheck, text: t('auth.featureSecurity') },
             ].map(({ icon: Icon, text }) => (
               <li key={text} className="flex items-center gap-3 text-sm text-white/90">
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20 backdrop-blur">
@@ -88,11 +90,16 @@ export default function LoginPage() {
           </ul>
         </div>
 
-        <p className="relative text-xs text-brand-200">Corporate Bank · Micro-Savings Division</p>
+        <p className="relative text-xs text-brand-200">{t('auth.division')}</p>
       </div>
 
       {/* ── Sign-in panel (sits on the ambient aurora backdrop) ─────────── */}
-      <div className="flex items-center justify-center p-6">
+      <div className="relative flex items-center justify-center p-6">
+        {/* Language switch stays reachable before sign-in. */}
+        <div className="absolute right-4 top-4 z-10">
+          <LanguageToggle />
+        </div>
+
         <div className="w-full max-w-sm animate-slide-up">
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-gradient text-white shadow-glow">
@@ -102,11 +109,11 @@ export default function LoginPage() {
           </div>
 
           <div className="card card-topline card-glow p-7">
-            <h2 className="text-2xl font-bold tracking-tight text-ink">Welcome back</h2>
-            <p className="mt-1 text-sm text-ink-muted">Sign in to your admin console to continue.</p>
+            <h2 className="text-2xl font-bold tracking-tight text-ink">{t('auth.welcomeBack')}</h2>
+            <p className="mt-1 text-sm text-ink-muted">{t('auth.signInPrompt')}</p>
 
             <form onSubmit={onSubmit} className="mt-7 space-y-4">
-              <Field label="Email" htmlFor="email">
+              <Field label={t('auth.email')} htmlFor="email">
                 <Input
                   id="email"
                   type="email"
@@ -114,10 +121,10 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@bank.example"
+                  placeholder={t('auth.emailPlaceholder')}
                 />
               </Field>
-              <Field label="Password" htmlFor="password">
+              <Field label={t('auth.password')} htmlFor="password">
                 <Input
                   id="password"
                   type="password"
@@ -136,13 +143,13 @@ export default function LoginPage() {
               )}
 
               <Button type="submit" loading={submitting} className="w-full">
-                <LogIn size={16} /> Sign in
+                <LogIn size={16} /> {submitting ? t('auth.signingIn') : t('auth.signIn')}
               </Button>
             </form>
           </div>
 
           <p className="mt-5 flex items-center justify-center gap-1.5 text-xs text-ink-faint">
-            <ShieldCheck size={13} /> Secured with end-to-end encryption
+            <ShieldCheck size={13} /> {t('auth.encryptionNote')}
           </p>
         </div>
       </div>

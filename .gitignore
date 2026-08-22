@@ -62,3 +62,6 @@ apps/api/storage/
 
 # Temporary files
 *.tmp
+
+# Claude Code local settings
+.claude/settings.local.json

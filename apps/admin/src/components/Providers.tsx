@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { ThemeProvider } from 'next-themes';
 import { QueryProvider } from '@/lib/query';
 import { AuthProvider } from '@/lib/auth';
+import { LocaleProvider } from '@/lib/i18n';
 import { ToastProvider } from '@/components/ui';
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -14,11 +15,15 @@ export function Providers({ children }: { children: ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      <QueryProvider>
-        <AuthProvider>
-          <ToastProvider>{children}</ToastProvider>
-        </AuthProvider>
-      </QueryProvider>
+      {/* Outside QueryProvider so every screen — including /login, which sits
+          outside the dashboard shell — can call useT(). */}
+      <LocaleProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <ToastProvider>{children}</ToastProvider>
+          </AuthProvider>
+        </QueryProvider>
+      </LocaleProvider>
     </ThemeProvider>
   );
 }

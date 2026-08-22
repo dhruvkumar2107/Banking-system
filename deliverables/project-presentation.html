@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Digital Pigmee — Technical Architecture & Feature Briefing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #090d16 0%, #0f172a 50%, #1e1b4b 100%);
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --accent-purple: #818cf8;
+      --accent-cyan: #38bdf8;
+      --accent-emerald: #34d399;
+      --accent-amber: #fbbf24;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 40px 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 50px;
+      padding-bottom: 30px;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 6px 16px;
+      background: rgba(129, 140, 248, 0.15);
+      border: 1px solid var(--accent-purple);
+      color: var(--accent-purple);
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: linear-gradient(to right, #ffffff, #c7d2fe, #38bdf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 12px;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 1.15rem;
+      max-width: 750px;
+      margin: 0 auto;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(540px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease, border-color 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(129, 140, 248, 0.4);
+    }
+
+    .card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(129, 140, 248, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+    }
+
+    h2 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    h3 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--accent-cyan);
+      margin: 18px 0 10px 0;
+    }
+
+    ul {
+      list-style: none;
+    }
+
+    li {
+      position: relative;
+      padding-left: 24px;
+      margin-bottom: 12px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    li strong {
+      color: var(--text-main);
+    }
+
+    li::before {
+      content: "✦";
+      position: absolute;
+      left: 0;
+      color: var(--accent-purple);
+      font-size: 0.9rem;
+    }
+
+    .tech-pill {
+      display: inline-block;
+      padding: 4px 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: var(--accent-cyan);
+      margin: 4px 4px 4px 0;
+    }
+
+    .code-block {
+      background: #090d16;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      color: #a5b4fc;
+      margin-top: 12px;
+      overflow-x: auto;
+    }
+
+    footer {
+      text-align: center;
+      margin-top: 60px;
+      padding-top: 30px;
+      border-top: 1px solid var(--card-border);
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="badge">Executive Briefing & Architecture Overview</div>
+    <h1>Digital Pigmee Bank System</h1>
+    <p class="subtitle">A full-stack, enterprise-grade daily micro-savings & banking platform modernizing traditional Indian Pigmy deposit collections.</p>
+  </header>
+
+  <!-- SECTION 1: TECH STACK -->
+  <div class="card" style="margin-bottom: 30px;">
+    <h2>🚀 1. Technical Stack Breakdown</h2>
+    <p style="color: var(--text-muted); margin-bottom: 20px;">The project is structured as a modern monorepo separating Backend API, Corporate Admin Panel, and Customer Mobile App.</p>
+    
+    <div class="grid-3">
+      <div>
+        <h3>⚡ Backend REST API</h3>
+        <ul>
+          <li><strong>Framework:</strong> NestJS (TypeScript)</li>
+          <li><strong>Database ORM:</strong> Drizzle ORM</li>
+          <li><strong>Engine:</strong> PGlite Embedded Postgres (Zero setup local dev, auto-switches to production Postgres)</li>
+          <li><strong>Documentation:</strong> Swagger / OpenAPI 3.0 at <span class="tech-pill">/docs</span></li>
+          <li><strong>Security:</strong> Helmet headers, CORS policies, Rate limiting (<span class="tech-pill">@nestjs/throttler</span>), Password hashing (<span class="tech-pill">bcryptjs</span>)</li>
+        </ul>
+      </div>
+
+      <div>
+        <h3>🖥️ Admin Dashboard</h3>
+        <ul>
+          <li><strong>Framework:</strong> Next.js 14 (App Router) + React 18</li>
+          <li><strong>Styling:</strong> Vanilla CSS + TailwindCSS</li>
+          <li><strong>Analytics:</strong> Recharts graphs for collection trends & village metrics</li>
+          <li><strong>State Management:</strong> TanStack React Query v5</li>
+          <li><strong>Icons & UX:</strong> Lucide React + Next-Themes (Dark/Light mode)</li>
+        </ul>
+      </div>
+
+      <div>
+        <h3>📱 Customer Mobile App</h3>
+        <ul>
+          <li><strong>Framework:</strong> Flutter 3.47 + Dart 3.13</li>
+          <li><strong>State Management:</strong> Flutter Riverpod</li>
+          <li><strong>Routing:</strong> GoRouter with auth-aware route guards</li>
+          <li><strong>Localization:</strong> Dual-language (<span class="tech-pill">English</span> & <span class="tech-pill">Hindi</span>)</li>
+          <li><strong>UX Layout:</strong> Responsive Mobile Frame Wrapper for clean web previews</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: CORE FEATURES -->
+  <div class="grid-2">
+    <div class="card">
+      <h2>💡 2. Key System Features</h2>
+      <ul>
+        <li><strong>Daily Micro-Savings (Pigmy Deposit):</strong> Allows daily small deposit allocations (₹50, ₹100, ₹200, ₹500, ₹1000) with streak tracking.</li>
+        <li><strong>OTP & JWT Authentication:</strong> Customer mobile login via SMS/Console OTP + Admin JWT Access/Refresh tokens stored in platform keystore.</li>
+        <li><strong>Dual-Mode Payment Gateway:</strong> Seamless Razorpay integration operating in <strong>Mock Mode</strong> (instant test flow) and <strong>Live Mode</strong> (HMAC signature verification).</li>
+        <li><strong>Automated PDF Receipts:</strong> Generates instant, downloadable, and shareable PDF transaction receipts via <span class="tech-pill">PDFKit</span>.</li>
+        <li><strong>Village-Wise Analytics:</strong> Grouping customers and collections by rural village zones for field agent collection reporting.</li>
+        <li><strong>Auto-Reconciliation Engine:</strong> Cron scheduler sweeps missing daily deposits, marks missed streaks, and calculates maturity rewards.</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>🛡️ 3. Security & Engineering Best Practices</h2>
+      <ul>
+        <li><strong>Production Fail-Fast Guard:</strong> Rejects booting in production if mock payments, console SMS, or default secrets are detected.</li>
+        <li><strong>Audit Logging System:</strong> Full history tracking of administrative updates, KYC approvals, nominee changes, and financial balances.</li>
+        <li><strong>KYC Document Verification:</strong> Encrypted document upload handling (Aadhaar, PAN, Bank Details) with admin review status transitions.</li>
+        <li><strong>Atomic Database Transactions:</strong> Financial ledger balance updates run inside strict database transactions to guarantee zero mathematical discrepancy.</li>
+        <li><strong>Monorepo Efficiency:</strong> Unified workspace with shared build scripts and instant local environment boot.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SECTION 3: SYSTEM ARCHITECTURE & DEMO INSTRUCTIONS -->
+  <div class="card">
+    <h2>🌐 4. Live Local Demo Endpoints</h2>
+    <p style="color: var(--text-muted); margin-bottom: 16px;">All services are currently up, compiled with zero errors, and ready for your presentation:</p>
+    
+    <div class="code-block">
+1. Customer App (Flutter Web):    http://localhost:8080   (Mobile Frame View)
+2. Admin Panel (Next.js):        http://localhost:3000   (Login: admin@pigmee.bank / Admin@12345)
+3. Backend API & Swagger:        http://localhost:4000/docs
+4. GitHub Code Repository:       https://github.com/dhruvkumar2107/Banking-system
+    </div>
+  </div>
+
+  <footer>
+    <p>Digital Pigmee System Architecture Briefing • Prepared for Project Head Review</p>
+  </footer>
+</div>
+
+</body>
+</html>

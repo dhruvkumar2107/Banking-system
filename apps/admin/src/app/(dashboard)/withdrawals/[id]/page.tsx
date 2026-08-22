@@ -23,13 +23,8 @@ import {
 } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth';
 import { formatDate, formatDateTime, money } from '@/lib/format';
-import {
-  WithdrawalKindBadge,
-  WithdrawalStatusBadge,
-  payoutLabel,
-  referenceHint,
-  referenceLabel,
-} from '@/components/WithdrawalBadges';
+import { useT, type Translator } from '@/lib/i18n';
+import { WithdrawalKindBadge, WithdrawalStatusBadge } from '@/components/WithdrawalBadges';
 import type { PayoutMethod, WithdrawalDetail } from '@/lib/types';
 import {
   PageHeader,
@@ -49,9 +44,24 @@ import {
   useToast,
 } from '@/components/ui';
 
+/**
+ * The payout vocabulary, from the dictionary. Plain helpers, not components, so
+ * the translator is passed in rather than pulled from a hook.
+ */
+const payoutLabel = (t: Translator, method: PayoutMethod) =>
+  t(method === 'cash' ? 'withdrawals.payoutCash' : 'withdrawals.payoutBank');
+
+/** What the admin types in to prove the payout happened. */
+const referenceLabel = (t: Translator, method: PayoutMethod) =>
+  t(method === 'cash' ? 'withdrawals.refVoucher' : 'withdrawals.refUtr');
+
+const referenceHint = (t: Translator, method: PayoutMethod) =>
+  t(method === 'cash' ? 'withdrawals.refVoucherHint' : 'withdrawals.refUtrHint');
+
 export default function WithdrawalDetailPage({ params }: { params: { id: string } }) {
   const { id } = params;
   const { hasRole } = useAuth();
+  const t = useT();
   const canDecide = hasRole('superadmin', 'admin');
 
   const q = useWithdrawal(id);
@@ -70,7 +80,7 @@ export default function WithdrawalDetailPage({ params }: { params: { id: string 
         href="/withdrawals"
         className="inline-flex items-center gap-1 text-sm text-ink-muted hover:text-ink"
       >
-        <ArrowLeft size={15} /> Back to withdrawals
+        <ArrowLeft size={15} /> {t('withdrawals.backToWithdrawals')}
       </Link>
 
       <PageHeader
@@ -85,7 +95,7 @@ export default function WithdrawalDetailPage({ params }: { params: { id: string 
             </Link>
             <span>· {w.customer.mobile}</span>
             <span>· {w.village.name}</span>
-            <span>· requested {formatDateTime(w.requestedAt)}</span>
+            <span>· {t('withdrawals.requestedAt', { when: formatDateTime(w.requestedAt) })}</span>
           </span>
         }
         actions={
@@ -95,16 +105,16 @@ export default function WithdrawalDetailPage({ params }: { params: { id: string 
             {canDecide && isPending && (
               <>
                 <Button size="sm" variant="danger" onClick={() => setModal('reject')}>
-                  <XCircle size={14} /> Reject
+                  <XCircle size={14} /> {t('withdrawals.reject')}
                 </Button>
                 <Button size="sm" onClick={() => setModal('approve')}>
-                  <CheckCircle2 size={14} /> Approve
+                  <CheckCircle2 size={14} /> {t('withdrawals.approve')}
                 </Button>
               </>
             )}
             {canDecide && isApproved && (
               <Button size="sm" onClick={() => setModal('pay')}>
-                <HandCoins size={14} /> Record payout
+                <HandCoins size={14} /> {t('withdrawals.recordPayout')}
               </Button>
             )}
           </div>
@@ -113,24 +123,25 @@ export default function WithdrawalDetailPage({ params }: { params: { id: string 
 
       {!canDecide && (isPending || isApproved) && (
         <Notice tone="slate" icon={<ShieldCheck size={16} />}>
-          You can review this request, but only an <strong>Admin</strong> or{' '}
-          <strong>Super Admin</strong> can approve, reject or record a payout.
+          {t('withdrawals.readOnlyNotice')}
         </Notice>
       )}
 
       {isPending && (
         <Notice tone="amber" icon={<TriangleAlert size={16} />}>
-          Nothing has left the account yet. Approving is a decision only — the balance is debited in
-          a second step, when the payout reference is recorded.
+          {t('withdrawals.pendingNotice')}
         </Notice>
       )}
 
       {isApproved && (
         <Notice tone="blue" icon={<HandCoins size={16} />}>
-          Approved{w.decidedBy ? ` by ${w.decidedBy}` : ''}
-          {w.decidedAt ? ` on ${formatDateTime(w.decidedAt)}` : ''}. Pay the customer by{' '}
-          {payoutLabel(w.payoutMethod).toLowerCase()}, then record the{' '}
-          {referenceLabel(w.payoutMethod).toLowerCase()} here to post the debit.
+          {t('withdrawals.statusApprovedShort')}
+          {w.decidedBy ? t('withdrawals.approvedBy', { name: w.decidedBy }) : ''}
+          {w.decidedAt ? t('withdrawals.approvedOn', { when: formatDateTime(w.decidedAt) }) : ''}.{' '}
+          {t('withdrawals.approvedNotice', {
+            method: payoutLabel(t, w.payoutMethod).toLowerCase(),
+            reference: referenceLabel(t, w.payoutMethod).toLowerCase(),
+          })}
         </Notice>
       )}
 
@@ -140,31 +151,36 @@ export default function WithdrawalDetailPage({ params }: { params: { id: string 
           <CardHeader
             title={
               <span className="flex items-center gap-2">
-                <Coins size={16} className="text-brand-600 dark:text-brand-300" /> Payout breakdown
+                <Coins size={16} className="text-brand-600 dark:text-brand-300" />{' '}
+                {t('withdrawals.payoutBreakdown')}
               </span>
             }
-            subtitle="Every figure was locked in when the request was raised."
+            subtitle={t('withdrawals.payoutBreakdownSubtitle')}
           />
           <CardBody className="space-y-1">
-            <Row label="Amount drawn from account" value={money(w.amount)} />
+            <Row label={t('withdrawals.amountDrawn')} value={money(w.amount)} />
             {w.interest.paise > 0 && (
               <Row
-                label="Maturity interest credited"
+                label={t('withdrawals.maturityInterest')}
                 value={`+ ${money(w.interest)}`}
                 tone="green"
-                hint={`Simple interest at ${w.account.interestRatePercent}% p.a. — posted as its own passbook line at payout.`}
+                hint={t('withdrawals.maturityInterestHint', {
+                  rate: w.account.interestRatePercent,
+                })}
               />
             )}
             {w.penalty.paise > 0 && (
               <Row
-                label="Early withdrawal penalty"
+                label={t('withdrawals.earlyPenalty')}
                 value={`− ${money(w.penalty)}`}
                 tone="red"
-                hint="Deducted from the amount drawn, not charged on top."
+                hint={t('withdrawals.earlyPenaltyHint')}
               />
             )}
             <div className="mt-3 flex items-baseline justify-between gap-4 rounded-xl bg-surface-2 px-4 py-3">
-              <span className="text-sm font-medium text-ink-soft">Net payable to customer</span>
+              <span className="text-sm font-medium text-ink-soft">
+                {t('withdrawals.netPayable')}
+              </span>
               <span className="text-xl font-bold tracking-tight text-ink">
                 {money(w.netPayable)}
               </span>
@@ -172,23 +188,23 @@ export default function WithdrawalDetailPage({ params }: { params: { id: string 
 
             <div className="pt-4">
               <p className="pb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                Payout destination
+                {t('withdrawals.payoutDestination')}
               </p>
-              <Row label="Method" value={payoutLabel(w.payoutMethod)} />
+              <Row label={t('common.method')} value={payoutLabel(t, w.payoutMethod)} />
               {w.payoutMethod === 'bank_transfer' && (
                 <>
                   <Row
-                    label="Bank account"
+                    label={t('withdrawals.bankAccount')}
                     value={w.bankAccountMasked ? `••••${w.bankAccountMasked.slice(-4)}` : '—'}
                     mono
                   />
-                  <Row label="IFSC" value={w.bankIfsc ?? '—'} mono />
+                  <Row label={t('customers.ifsc')} value={w.bankIfsc ?? '—'} mono />
                 </>
               )}
               {w.reference && (
-                <Row label={referenceLabel(w.payoutMethod)} value={w.reference} mono />
+                <Row label={referenceLabel(t, w.payoutMethod)} value={w.reference} mono />
               )}
-              {w.note && <Row label="Note" value={w.note} />}
+              {w.note && <Row label={t('common.note')} value={w.note} />}
             </div>
           </CardBody>
         </Card>
@@ -199,14 +215,15 @@ export default function WithdrawalDetailPage({ params }: { params: { id: string 
             <CardHeader
               title={
                 <span className="flex items-center gap-2">
-                  <Landmark size={16} className="text-brand-600 dark:text-brand-300" /> Account
+                  <Landmark size={16} className="text-brand-600 dark:text-brand-300" />{' '}
+                  {t('withdrawals.account')}
                 </span>
               }
               action={<StatusBadge status={w.account.status} />}
             />
             <CardBody className="space-y-1">
               <Row
-                label="Account number"
+                label={t('withdrawals.accountNumber')}
                 value={
                   <Link
                     href={`/pigmy-accounts/${w.account.id}`}
@@ -216,23 +233,26 @@ export default function WithdrawalDetailPage({ params }: { params: { id: string 
                   </Link>
                 }
               />
-              <Row label="Current balance" value={money(w.account.currentBalance)} />
-              <Row label="Total deposited" value={money(w.account.totalDeposited)} />
-              <Row label="Term" value={`${w.account.termDays} days`} />
+              <Row label={t('withdrawals.currentBalance')} value={money(w.account.currentBalance)} />
+              <Row label={t('withdrawals.totalDeposited')} value={money(w.account.totalDeposited)} />
               <Row
-                label="Interest rate"
-                value={`${w.account.interestRatePercent}% p.a.`}
-                hint="Snapshotted when the account was opened — later scheme changes do not re-price it."
+                label={t('withdrawals.term')}
+                value={t('withdrawals.termDays', { days: w.account.termDays })}
               />
               <Row
-                label="Maturity date"
+                label={t('withdrawals.interestRate')}
+                value={t('withdrawals.interestRateValue', { rate: w.account.interestRatePercent })}
+                hint={t('withdrawals.interestRateHint')}
+              />
+              <Row
+                label={t('withdrawals.maturityDate')}
                 value={
                   <span className="inline-flex items-center gap-2">
                     {formatDate(w.account.maturityDate)}
                     {w.account.matured ? (
-                      <Badge tone="green">Matured</Badge>
+                      <Badge tone="green">{t('withdrawals.matured')}</Badge>
                     ) : (
-                      <Badge tone="slate">In term</Badge>
+                      <Badge tone="slate">{t('withdrawals.inTerm')}</Badge>
                     )}
                   </span>
                 }
@@ -244,16 +264,17 @@ export default function WithdrawalDetailPage({ params }: { params: { id: string 
             <CardHeader
               title={
                 <span className="flex items-center gap-2">
-                  <CalendarClock size={16} className="text-brand-600 dark:text-brand-300" /> Trail
+                  <CalendarClock size={16} className="text-brand-600 dark:text-brand-300" />{' '}
+                  {t('withdrawals.trail')}
                 </span>
               }
-              subtitle="Maker-checker: the requester never approves their own request."
+              subtitle={t('withdrawals.trailSubtitle')}
             />
             <CardBody>
               <ol className="space-y-4">
                 <Step
                   done
-                  title="Requested by customer"
+                  title={t('withdrawals.trailRequested')}
                   when={formatDateTime(w.requestedAt)}
                 />
                 <Step
@@ -261,19 +282,23 @@ export default function WithdrawalDetailPage({ params }: { params: { id: string 
                   failed={w.status === 'rejected' || w.status === 'cancelled'}
                   title={
                     w.status === 'rejected'
-                      ? 'Rejected'
+                      ? t('withdrawals.trailRejected')
                       : w.status === 'cancelled'
-                        ? 'Cancelled by customer'
-                        : 'Approved by admin'
+                        ? t('withdrawals.trailCancelled')
+                        : t('withdrawals.trailApproved')
                   }
-                  when={w.decidedAt ? formatDateTime(w.decidedAt) : 'Awaiting decision'}
+                  when={
+                    w.decidedAt
+                      ? formatDateTime(w.decidedAt)
+                      : t('withdrawals.awaitingDecision')
+                  }
                   by={w.decidedBy}
                 />
                 <Step
                   done={w.status === 'paid'}
                   last
-                  title="Payout recorded"
-                  when={w.paidAt ? formatDateTime(w.paidAt) : 'Not paid yet'}
+                  title={t('withdrawals.trailPaid')}
+                  when={w.paidAt ? formatDateTime(w.paidAt) : t('withdrawals.notPaidYet')}
                 />
               </ol>
             </CardBody>
@@ -357,6 +382,7 @@ function Step({
   failed?: boolean;
   last?: boolean;
 }) {
+  const t = useT();
   const dot = failed
     ? 'bg-rose-500'
     : done
@@ -371,7 +397,7 @@ function Step({
           {title}
         </p>
         <p className="text-xs text-ink-muted">{when}</p>
-        {by && <p className="text-xs text-ink-faint">by {by}</p>}
+        {by && <p className="text-xs text-ink-faint">{t('withdrawals.trailBy', { name: by })}</p>}
       </div>
     </li>
   );
@@ -382,6 +408,7 @@ function Step({
 function ApproveModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void }) {
   const approve = useApproveWithdrawal(w.id, w.account.id);
   const toast = useToast();
+  const t = useT();
   const [note, setNote] = useState('');
   const [err, setErr] = useState<string | null>(null);
 
@@ -392,10 +419,10 @@ function ApproveModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void
     setErr(null);
     try {
       await approve.mutateAsync({ note: note.trim() || undefined });
-      toast.success('Request approved — record the payout next');
+      toast.success(t('withdrawals.approvedToast'));
       onClose();
     } catch (e) {
-      setErr((e as Error).message || 'Could not approve this request');
+      setErr((e as Error).message || t('withdrawals.approveFailed'));
     }
   }
 
@@ -403,14 +430,14 @@ function ApproveModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void
     <Modal
       open
       onClose={onClose}
-      title="Approve withdrawal"
+      title={t('withdrawals.approveTitle')}
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button form="approve-wd" type="submit" loading={approve.isPending}>
-            <CheckCircle2 size={15} /> Approve
+            <CheckCircle2 size={15} /> {t('withdrawals.approve')}
           </Button>
         </>
       }
@@ -418,34 +445,39 @@ function ApproveModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void
       <form id="approve-wd" onSubmit={submit} className="space-y-4">
         <div className="rounded-xl bg-surface-2 px-4 py-3 text-sm">
           <div className="flex items-baseline justify-between gap-4">
-            <span className="text-ink-muted">Net payable</span>
+            <span className="text-ink-muted">{t('withdrawals.approveSummary')}</span>
             <span className="text-lg font-bold text-ink">{money(w.netPayable)}</span>
           </div>
           <p className="mt-1 text-xs text-ink-muted">
-            {w.customer.name} · {w.account.accountNumber} · balance{' '}
-            {money(w.account.currentBalance)}
+            {w.customer.name} · {w.account.accountNumber} ·{' '}
+            {t('withdrawals.rowBalance', { amount: money(w.account.currentBalance) })}
           </p>
         </div>
 
         {shortfall && (
           <Notice tone="red" icon={<TriangleAlert size={16} />}>
-            The balance is now lower than the requested amount. Approval will be refused — ask the
-            customer to raise a fresh request.
+            {t('withdrawals.shortfallNotice')}
           </Notice>
         )}
 
         <Notice tone="amber" icon={<TriangleAlert size={16} />}>
-          This moves no money. The account is debited only when you record the{' '}
-          {referenceLabel(w.payoutMethod).toLowerCase()} in the next step.
+          {t('withdrawals.approveNotice', {
+            reference: referenceLabel(t, w.payoutMethod).toLowerCase(),
+          })}
         </Notice>
 
-        <Field label="Note (optional)" htmlFor="ap-note" error={err} hint="Kept on the audit trail.">
+        <Field
+          label={t('withdrawals.noteOptional')}
+          htmlFor="ap-note"
+          error={err}
+          hint={t('withdrawals.noteHint')}
+        >
           <Textarea
             id="ap-note"
             rows={2}
             value={note}
             onChange={(e) => setNote(e.target.value)}
-            placeholder="Verified passbook and KYC."
+            placeholder={t('withdrawals.notePlaceholder')}
           />
         </Field>
       </form>
@@ -456,6 +488,7 @@ function ApproveModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void
 function RejectModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void }) {
   const reject = useRejectWithdrawal(w.id, w.account.id);
   const toast = useToast();
+  const t = useT();
   const [reason, setReason] = useState('');
   const [err, setErr] = useState<string | null>(null);
 
@@ -463,15 +496,15 @@ function RejectModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void 
     e.preventDefault();
     setErr(null);
     if (reason.trim().length < 3) {
-      setErr('Give the customer a reason (at least 3 characters).');
+      setErr(t('withdrawals.rejectReasonError'));
       return;
     }
     try {
       await reject.mutateAsync({ reason: reason.trim() });
-      toast.success('Request rejected');
+      toast.success(t('withdrawals.rejectedToast'));
       onClose();
     } catch (e) {
-      setErr((e as Error).message || 'Could not reject this request');
+      setErr((e as Error).message || t('withdrawals.rejectFailed'));
     }
   }
 
@@ -480,31 +513,33 @@ function RejectModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void 
       open
       onClose={onClose}
       size="sm"
-      title="Reject withdrawal"
+      title={t('withdrawals.rejectTitle')}
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button form="reject-wd" type="submit" variant="danger" loading={reject.isPending}>
-            <XCircle size={15} /> Reject request
+            <XCircle size={15} /> {t('withdrawals.rejectRequest')}
           </Button>
         </>
       }
     >
       <form id="reject-wd" onSubmit={submit} className="space-y-4">
         <p className="text-sm text-ink-muted">
-          {w.customer.name}’s request for <span className="font-medium text-ink">{money(w.netPayable)}</span>{' '}
-          will be closed. The reason is sent to them in the app, so keep it plain.
+          {t('withdrawals.rejectBody', {
+            name: w.customer.name,
+            amount: money(w.netPayable),
+          })}
         </p>
-        <Field label="Reason" htmlFor="rj-reason" error={err}>
+        <Field label={t('withdrawals.rejectReason')} htmlFor="rj-reason" error={err}>
           <Textarea
             id="rj-reason"
             rows={3}
             required
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Please visit the branch with your passbook to complete KYC."
+            placeholder={t('withdrawals.rejectPlaceholder')}
           />
         </Field>
       </form>
@@ -515,6 +550,7 @@ function RejectModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void 
 function PayModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void }) {
   const pay = usePayWithdrawal(w.id, w.account.id);
   const toast = useToast();
+  const t = useT();
   const [method, setMethod] = useState<PayoutMethod>(w.payoutMethod);
   const [reference, setReference] = useState('');
   const [err, setErr] = useState<string | null>(null);
@@ -525,19 +561,19 @@ function PayModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void }) 
     e.preventDefault();
     setErr(null);
     if (!reference.trim()) {
-      setErr(`${referenceLabel(method)} is required — it is the proof of payout.`);
+      setErr(t('withdrawals.referenceRequired', { reference: referenceLabel(t, method) }));
       return;
     }
     try {
       const res = await pay.mutateAsync({ reference: reference.trim(), payoutMethod: method });
       toast.success(
         res.accountClosed
-          ? `Payout recorded · account closed`
-          : `Payout recorded · balance now ${money(res.balanceAfter)}`,
+          ? t('withdrawals.paidClosedToast')
+          : t('withdrawals.paidToast', { balance: money(res.balanceAfter) }),
       );
       onClose();
     } catch (e) {
-      setErr((e as Error).message || 'Could not record this payout');
+      setErr((e as Error).message || t('withdrawals.payFailed'));
     }
   }
 
@@ -545,14 +581,14 @@ function PayModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void }) 
     <Modal
       open
       onClose={onClose}
-      title="Record payout"
+      title={t('withdrawals.recordPayout')}
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t('common.cancel')}
           </Button>
           <Button form="pay-wd" type="submit" loading={pay.isPending}>
-            <HandCoins size={15} /> Record payout
+            <HandCoins size={15} /> {t('withdrawals.recordPayout')}
           </Button>
         </>
       }
@@ -560,29 +596,31 @@ function PayModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void }) 
       <form id="pay-wd" onSubmit={submit} className="space-y-4">
         <div className="rounded-xl bg-surface-2 px-4 py-3">
           <div className="flex items-baseline justify-between gap-4">
-            <span className="text-sm text-ink-muted">Hand over to customer</span>
+            <span className="text-sm text-ink-muted">{t('withdrawals.handOver')}</span>
             <span className="text-xl font-bold text-ink">{money(w.netPayable)}</span>
           </div>
           <p className="mt-1 text-xs text-ink-muted">
-            {money(w.amount)} from the account
-            {w.interest.paise > 0 && ` + ${money(w.interest)} interest`}
-            {w.penalty.paise > 0 && ` − ${money(w.penalty)} penalty`}
+            {t('withdrawals.handOverFrom', { amount: money(w.amount) })}
+            {w.interest.paise > 0 &&
+              t('withdrawals.handOverInterest', { amount: money(w.interest) })}
+            {w.penalty.paise > 0 && t('withdrawals.handOverPenalty', { amount: money(w.penalty) })}
           </p>
         </div>
 
         <Notice tone="red" icon={<TriangleAlert size={16} />}>
-          Confirm the money has actually been handed over. This debits the account immediately and
-          cannot be undone{closes ? ', and closes the account' : ''}.
+          {t('withdrawals.payNotice', {
+            closes: closes ? t('withdrawals.payNoticeCloses') : '',
+          })}
         </Notice>
 
-        <Field label="Payout method" htmlFor="pw-method">
+        <Field label={t('withdrawals.payoutMethod')} htmlFor="pw-method">
           <Select
             id="pw-method"
             value={method}
             onChange={(e) => setMethod(e.target.value as PayoutMethod)}
           >
-            <option value="bank_transfer">Bank transfer</option>
-            <option value="cash">Cash at branch</option>
+            <option value="bank_transfer">{t('withdrawals.payoutBank')}</option>
+            <option value="cash">{t('withdrawals.payoutCash')}</option>
           </Select>
         </Field>
 
@@ -596,16 +634,16 @@ function PayModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void }) 
                   {w.bankIfsc && <span className="font-mono text-ink-muted">· {w.bankIfsc}</span>}
                 </>
               ) : (
-                <span className="text-ink-muted">No bank details captured on this request.</span>
+                <span className="text-ink-muted">{t('withdrawals.noBankDetails')}</span>
               )}
             </p>
           </div>
         )}
 
         <Field
-          label={referenceLabel(method)}
+          label={referenceLabel(t, method)}
           htmlFor="pw-ref"
-          hint={referenceHint(method)}
+          hint={referenceHint(t, method)}
           error={err}
         >
           <Input
@@ -614,7 +652,11 @@ function PayModal({ w, onClose }: { w: WithdrawalDetail; onClose: () => void }) 
             maxLength={64}
             value={reference}
             onChange={(e) => setReference(e.target.value)}
-            placeholder={method === 'cash' ? 'VCH-00184' : 'AXISN12345678901'}
+            placeholder={
+              method === 'cash'
+                ? t('withdrawals.refVoucherPlaceholder')
+                : t('withdrawals.refUtrPlaceholder')
+            }
           />
         </Field>
       </form>

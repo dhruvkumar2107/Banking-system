@@ -6,11 +6,13 @@ import { PiggyBank, X } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/lib/auth';
 import { useWithdrawalsPendingCount } from '@/lib/hooks';
+import { useT } from '@/lib/i18n';
 import { NAV } from './nav';
 
 export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const t = useT();
   // Polled so a request raised from the app shows up without a reload.
   const pendingWithdrawals = useWithdrawalsPendingCount();
   const badgeCount = (key: NonNullable<(typeof NAV)[number]['items'][number]['badge']>) =>
@@ -45,7 +47,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
           <button
             className="rounded-lg p-1 text-ink-muted transition hover:bg-surface-2 lg:hidden"
             onClick={onClose}
-            aria-label="Close menu"
+            aria-label={t('common.closeMenu')}
           >
             <X size={18} />
           </button>
@@ -58,9 +60,9 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
             );
             if (!items.length) return null;
             return (
-              <div key={group.title}>
+              <div key={group.titleKey}>
                 <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-ink-faint">
-                  {group.title}
+                  {t(group.titleKey)}
                 </p>
                 <div className="space-y-0.5">
                   {items.map((item) => {
@@ -91,11 +93,11 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
                               : 'text-ink-muted group-hover:text-ink-soft',
                           )}
                         />
-                        {item.label}
+                        {t(item.labelKey)}
                         {count > 0 && (
                           <span
                             className="ml-auto inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-700 ring-1 ring-inset ring-amber-500/25 dark:text-amber-300"
-                            title={`${count} awaiting approval`}
+                            title={t('nav.awaitingApproval', { count })}
                           >
                             {count > 99 ? '99+' : count}
                           </span>
@@ -110,7 +112,7 @@ export function Sidebar({ open, onClose }: { open: boolean; onClose: () => void 
         </nav>
 
         <div className="border-t border-line-soft px-5 py-3 text-[11px] text-ink-faint">
-          Corporate Bank · Micro-Savings
+          {t('app.tagline')}
         </div>
       </aside>
     </>

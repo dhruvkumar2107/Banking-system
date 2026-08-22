@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth';
+import { useT } from '@/lib/i18n';
 import { LoadingBlock } from '@/components/ui';
 import { Sidebar } from './Sidebar';
 import { Topbar } from './Topbar';
@@ -10,6 +11,7 @@ import { Topbar } from './Topbar';
 export function AppShell({ children }: { children: ReactNode }) {
   const { status } = useAuth();
   const router = useRouter();
+  const t = useT();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -19,7 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (status !== 'authed') {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <LoadingBlock label="Loading your console…" />
+        <LoadingBlock label={t('common.loadingConsole')} />
       </div>
     );
   }

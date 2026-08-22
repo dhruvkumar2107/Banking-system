@@ -255,6 +255,8 @@ class ApiClient {
           return ApiException(
             _serverMessage(res.data) ?? (e.error as String?) ?? 'Request failed.',
             statusCode: res.statusCode,
+            code: _serverCode(res.data),
+            stage: _serverField(res.data, 'stage'),
           );
         }
         return ApiException((e.error as String?) ?? 'Something went wrong. Please try again.');
@@ -283,6 +285,19 @@ class ApiClient {
       if (error is String && error.isNotEmpty) return error;
     }
     if (data is String && data.isNotEmpty) return data;
+    return null;
+  }
+
+  /// The machine-readable code from a Nest error body, preferring the explicit
+  /// `code` (e.g. `KYC_REQUIRED`) and falling back to the error name
+  /// (`KycRequired`) — the gate refusal carries both.
+  String? _serverCode(dynamic data) => _serverField(data, 'code') ?? _serverField(data, 'error');
+
+  String? _serverField(dynamic data, String key) {
+    if (data is Map) {
+      final dynamic value = data[key];
+      if (value is String && value.isNotEmpty) return value;
+    }
     return null;
   }
 }

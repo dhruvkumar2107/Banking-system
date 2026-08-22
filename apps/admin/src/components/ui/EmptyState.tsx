@@ -1,8 +1,11 @@
+'use client';
+
 import type { ReactNode } from 'react';
 import { Inbox } from 'lucide-react';
+import { useT } from '@/lib/i18n';
 
 export function EmptyState({
-  title = 'Nothing here yet',
+  title,
   message,
   icon,
   action,
@@ -12,13 +15,17 @@ export function EmptyState({
   icon?: ReactNode;
   action?: ReactNode;
 }) {
+  const t = useT();
+  // Was a default parameter; resolved here instead so the fallback can be
+  // translated. Callers see the same contract — omit `title`, get this wording.
+  const heading = title ?? t('common.nothingHereYet');
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface-2 text-ink-faint">
         {icon ?? <Inbox size={22} />}
       </div>
       <div>
-        <p className="text-sm font-medium text-ink-soft">{title}</p>
+        <p className="text-sm font-medium text-ink-soft">{heading}</p>
         {message && <p className="mt-1 max-w-sm text-sm text-ink-muted">{message}</p>}
       </div>
       {action}
@@ -27,10 +34,13 @@ export function EmptyState({
 }
 
 export function ErrorState({ message }: { message?: string }) {
+  const t = useT();
   return (
     <div className="flex flex-col items-center justify-center gap-2 py-16 text-center">
-      <p className="text-sm font-medium text-rose-600 dark:text-rose-400">Something went wrong</p>
-      <p className="max-w-sm text-sm text-ink-muted">{message ?? 'Please try again.'}</p>
+      <p className="text-sm font-medium text-rose-600 dark:text-rose-400">
+        {t('common.somethingWentWrong')}
+      </p>
+      <p className="max-w-sm text-sm text-ink-muted">{message ?? t('common.pleaseTryAgain')}</p>
     </div>
   );
 }

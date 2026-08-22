@@ -16,6 +16,7 @@ import '../state/data_providers.dart';
 import '../state/providers.dart';
 import '../widgets/primary_button.dart';
 import '../widgets/state_views.dart';
+import 'kyc_status_screen.dart';
 import 'pay_result_screen.dart';
 
 /// Navigation arguments for [PayScreen].
@@ -106,6 +107,12 @@ class _PayScreenState extends ConsumerState<PayScreen> {
     } on ApiException catch (e) {
       if (!mounted) return;
       setState(() => _processing = false);
+      // Deposits stay shut until an admin verifies the customer — send them to
+      // the one screen that can open the gate, with the server's own reason.
+      if (e.isKycRequired) {
+        context.push(Routes.kyc, extra: KycArgs(message: e.message));
+        return;
+      }
       context.pushReplacement(
         Routes.payResult,
         extra: PayResultArgs(success: false, failureMessage: e.message),

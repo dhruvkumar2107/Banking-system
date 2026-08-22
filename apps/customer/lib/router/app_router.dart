@@ -8,6 +8,11 @@ import '../screens/dashboard_screen.dart';
 import '../screens/edit_profile_screen.dart';
 import '../screens/help_screen.dart';
 import '../screens/home_shell.dart';
+import '../screens/kyc_status_screen.dart';
+import '../screens/kyc_submit_screen.dart';
+import '../screens/loan_apply_screen.dart';
+import '../screens/loan_detail_screen.dart';
+import '../screens/loans_screen.dart';
 import '../screens/login_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/onboarding_screen.dart';
@@ -40,6 +45,10 @@ class Routes {
   static const String help = '/help';
   static const String editProfile = '/edit-profile';
   static const String bankDetails = '/bank-details';
+  static const String kyc = '/kyc';
+  static const String kycSubmit = '/kyc/submit';
+  static const String loans = '/loans'; // /loans/:id
+  static const String loanApply = '/loans/apply';
 }
 
 /// Routes reachable without authentication.
@@ -149,6 +158,34 @@ final routerProvider = Provider<GoRouter>((ref) {
         parentNavigatorKey: _rootNavigatorKey,
         path: Routes.bankDetails,
         builder: (_, GoRouterState s) => BankDetailsScreen(existing: s.extra as BankDetailsArgs?),
+      ),
+
+      // KYC is reachable even while the gate is closed — it is how it opens.
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: Routes.kyc,
+        builder: (_, GoRouterState s) => KycStatusScreen(args: s.extra as KycArgs?),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: Routes.kycSubmit,
+        builder: (_, _) => const KycSubmitScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: Routes.loans,
+        builder: (_, _) => const LoansScreen(),
+      ),
+      // Declared before `/loans/:id` so `apply` is never read as a loan id.
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: Routes.loanApply,
+        builder: (_, _) => const LoanApplyScreen(),
+      ),
+      GoRoute(
+        parentNavigatorKey: _rootNavigatorKey,
+        path: '${Routes.loans}/:id',
+        builder: (_, GoRouterState s) => LoanDetailScreen(loanId: s.pathParameters['id']!),
       ),
     ],
   );

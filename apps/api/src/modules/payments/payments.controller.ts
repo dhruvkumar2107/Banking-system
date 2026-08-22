@@ -16,6 +16,7 @@ import { CurrentCustomerId } from '../../common/decorators/current-customer.deco
 import { PaginationQueryDto, paginate } from '../../common/dto/pagination.dto';
 import { CreateOrderDto, VerifyPaymentDto } from './payments.dto';
 import { PaymentsService } from './payments.service';
+import { RequiresKyc } from '../kyc/kyc.guard';
 
 @ApiTags('payments')
 @ApiBearerAuth()
@@ -24,6 +25,7 @@ export class PaymentsController {
   constructor(private readonly payments: PaymentsService) {}
 
   @Post('order')
+  @RequiresKyc()
   @ApiOperation({ summary: 'Create a payment order for a pigmy deposit' })
   createOrder(
     @Body() dto: CreateOrderDto,
@@ -35,6 +37,10 @@ export class PaymentsController {
 
   @Post('verify')
   @HttpCode(200)
+  // Deliberately NOT @RequiresKyc(). `order` is the chokepoint — an unverified
+  // customer can never get an order created in the first place. Gating this route
+  // as well would mean that if a customer's KYC lapsed between paying and
+  // verifying, we would take their money and refuse to credit it.
   @ApiOperation({ summary: 'Verify a completed payment (server-side signature check)' })
   verify(@Body() dto: VerifyPaymentDto, @CurrentCustomerId() customerId: string, @Ip() ip: string) {
     return this.payments.verifyPayment(customerId, dto, ip);

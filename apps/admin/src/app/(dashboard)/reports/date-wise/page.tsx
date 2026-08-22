@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { CalendarRange } from 'lucide-react';
 import { useDateWise, useVillages } from '@/lib/hooks';
 import { money, inr, formatDate, formatDayShort, isoDaysAgo } from '@/lib/format';
+import { useT } from '@/lib/i18n';
 import {
   PageHeader,
   Card,
@@ -31,6 +32,7 @@ function toInput(iso: string) {
 }
 
 export default function DateWiseReportsPage() {
+  const t = useT();
   const villages = useVillages();
   const [from, setFrom] = useState(toInput(isoDaysAgo(30)));
   const [to, setTo] = useState(toInput(new Date().toISOString()));
@@ -56,16 +58,16 @@ export default function DateWiseReportsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Date-wise Reports" subtitle="Collection totals grouped by day, for any range." />
+      <PageHeader title={t('reports.dateWiseTitle')} subtitle={t('reports.dateWiseSubtitle')} />
 
       <Card>
         <CardBody>
           <div className="flex flex-wrap items-end gap-3">
-            <Field label="From" className="w-40"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
-            <Field label="To" className="w-40"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
-            <Field label="Village" className="w-56">
+            <Field label={t('common.from')} className="w-40"><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Field>
+            <Field label={t('common.to')} className="w-40"><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Field>
+            <Field label={t('common.village')} className="w-56">
               <Select value={villageId} onChange={(e) => setVillageId(e.target.value)}>
-                <option value="">All villages</option>
+                <option value="">{t('common.allVillages')}</option>
                 {villages.data?.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
               </Select>
             </Field>
@@ -74,24 +76,24 @@ export default function DateWiseReportsPage() {
       </Card>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total Collected" value={inr(totals.collected)} tone="green" />
-        <StatCard label="Successful" value={totals.success} tone="indigo" />
-        <StatCard label="Pending" value={totals.pending} tone="amber" />
-        <StatCard label="Failed" value={totals.failed} tone="red" />
+        <StatCard label={t('reports.totalCollected')} value={inr(totals.collected)} tone="green" />
+        <StatCard label={t('common.successful')} value={totals.success} tone="indigo" />
+        <StatCard label={t('status.pending')} value={totals.pending} tone="amber" />
+        <StatCard label={t('status.failed')} value={totals.failed} tone="red" />
       </div>
 
       <Card>
-        <CardHeader title="Collection trend" />
+        <CardHeader title={t('reports.collectionTrend')} />
         <CardBody>
-          {report.isError ? <ErrorState message="Could not load report." /> : report.isLoading ? <LoadingBlock /> : chartData.length ? <CollectionChart data={chartData} /> : <EmptyState title="No data in this range" icon={<CalendarRange size={22} />} />}
+          {report.isError ? <ErrorState message={t('reports.loadError')} /> : report.isLoading ? <LoadingBlock /> : chartData.length ? <CollectionChart data={chartData} /> : <EmptyState title={t('reports.noDataInRange')} icon={<CalendarRange size={22} />} />}
         </CardBody>
       </Card>
 
       <Card>
-        <CardHeader title="Daily breakdown" />
+        <CardHeader title={t('reports.dailyBreakdown')} />
         <CardBody>
           {report.isError ? (
-            <ErrorState message="Could not load report." />
+            <ErrorState message={t('reports.loadError')} />
           ) : report.isLoading ? (
             <LoadingBlock />
           ) : report.data && report.data.series.length ? (
@@ -99,11 +101,11 @@ export default function DateWiseReportsPage() {
               <Table>
                 <Thead>
                   <Tr>
-                    <Th>Date</Th>
-                    <Th>Collected</Th>
-                    <Th>Success</Th>
-                    <Th>Pending</Th>
-                    <Th>Failed</Th>
+                    <Th>{t('common.date')}</Th>
+                    <Th>{t('common.collected')}</Th>
+                    <Th>{t('status.success')}</Th>
+                    <Th>{t('status.pending')}</Th>
+                    <Th>{t('status.failed')}</Th>
                   </Tr>
                 </Thead>
                 <Tbody>
@@ -120,7 +122,7 @@ export default function DateWiseReportsPage() {
               </Table>
             </TableWrap>
           ) : (
-            <EmptyState title="No data in this range" />
+            <EmptyState title={t('reports.noDataInRange')} />
           )}
         </CardBody>
       </Card>

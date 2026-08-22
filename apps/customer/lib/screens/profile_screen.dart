@@ -51,6 +51,8 @@ class ProfileScreen extends ConsumerWidget {
               children: <Widget>[
                 _Header(profile: p),
                 const SizedBox(height: 24),
+                _services(context, p),
+                const SizedBox(height: 20),
                 _personalInfo(context, p),
                 const SizedBox(height: 20),
                 _nominees(context, ref, p),
@@ -69,6 +71,44 @@ class ProfileScreen extends ConsumerWidget {
   }
 
   // ── Sections ─────────────────────────────────────────────────────────────
+
+  /// The two flows that live outside this tab: KYC verification (which the pill
+  /// in the header hints at) and loans.
+  Widget _services(BuildContext context, CustomerProfile p) {
+    final AppStrings s = AppStrings.of(context);
+    return SectionCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: <Widget>[
+          ListTile(
+            leading: const Icon(Icons.badge_outlined, color: PigmeeColors.indigo),
+            title: Text(s.t('kycTitle')),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                StatusPill.kyc(p.kycStatus, _kycShort(s, p.kycStatus)),
+                const Icon(Icons.chevron_right_rounded),
+              ],
+            ),
+            onTap: () => context.push(Routes.kyc),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.request_quote_outlined, color: PigmeeColors.indigo),
+            title: Text(s.t('loansTitle')),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => context.push(Routes.loans),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _kycShort(AppStrings s, String status) => switch (status) {
+        'verified' => s.t('kycVerified'),
+        'rejected' => s.t('kycRejected'),
+        _ => s.t('kycPending'),
+      };
 
   Widget _personalInfo(BuildContext context, CustomerProfile p) {
     final AppStrings s = AppStrings.of(context);

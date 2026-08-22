@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { BarChart3, TrendingUp, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { useAnalytics } from '@/lib/hooks';
 import { inr, formatDayShort } from '@/lib/format';
+import { useT, type TranslationKey } from '@/lib/i18n';
 import {
   PageHeader,
   Card,
@@ -18,16 +19,18 @@ import {
 import { CollectionChart } from '@/components/charts/CollectionChart';
 import { CountBars } from '@/components/charts/CountBars';
 
-const RANGES = [
-  { days: 7, label: '7 days' },
-  { days: 14, label: '14 days' },
-  { days: 30, label: '30 days' },
-  { days: 90, label: '90 days' },
+/** Labels are i18n keys — `t()` cannot run at module scope, so they resolve at render. */
+const RANGES: { days: number; labelKey: TranslationKey }[] = [
+  { days: 7, labelKey: 'analytics.range7' },
+  { days: 14, labelKey: 'analytics.range14' },
+  { days: 30, labelKey: 'analytics.range30' },
+  { days: 90, labelKey: 'analytics.range90' },
 ];
 
 export default function AnalyticsPage() {
   const [days, setDays] = useState(30);
   const report = useAnalytics(days);
+  const t = useT();
 
   const totals = useMemo(() => {
     const s = report.data?.series ?? [];
@@ -48,16 +51,16 @@ export default function AnalyticsPage() {
 
   const chartData = report.data?.series.map((p) => ({ label: formatDayShort(p.day), paise: p.collected.paise })) ?? [];
   const statusBars = [
-    { label: 'Success', value: totals.success, color: '#059669' },
-    { label: 'Pending', value: totals.pending, color: '#d97706' },
-    { label: 'Failed', value: totals.failed, color: '#e11d48' },
+    { label: t('status.success'), value: totals.success, color: '#059669' },
+    { label: t('status.pending'), value: totals.pending, color: '#d97706' },
+    { label: t('status.failed'), value: totals.failed, color: '#e11d48' },
   ];
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Analytics"
-        subtitle="Collection trends and payment outcomes over time."
+        title={t('analytics.title')}
+        subtitle={t('analytics.subtitle')}
         actions={
           <div className="inline-flex overflow-hidden rounded-lg border border-ink-line">
             {RANGES.map((r) => (
@@ -68,7 +71,7 @@ export default function AnalyticsPage() {
                   days === r.days ? 'bg-brand-600 text-white' : 'bg-surface text-ink-soft hover:bg-surface-2'
                 }`}
               >
-                {r.label}
+                {t(r.labelKey)}
               </button>
             ))}
           </div>
@@ -76,45 +79,45 @@ export default function AnalyticsPage() {
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total Collected" value={inr(totals.collected)} icon={<TrendingUp size={20} />} tone="green" />
-        <StatCard label="Avg / Day" value={inr(totals.avgPerDay)} icon={<BarChart3 size={20} />} tone="indigo" hint={`${totals.activeDays} active day(s)`} />
-        <StatCard label="Successful" value={totals.success} icon={<CheckCircle2 size={20} />} tone="green" />
-        <StatCard label="Failed" value={totals.failed} icon={<XCircle size={20} />} tone="red" />
+        <StatCard label={t('analytics.totalCollected')} value={inr(totals.collected)} icon={<TrendingUp size={20} />} tone="green" />
+        <StatCard label={t('analytics.avgPerDay')} value={inr(totals.avgPerDay)} icon={<BarChart3 size={20} />} tone="indigo" hint={t('analytics.activeDays', { count: totals.activeDays })} />
+        <StatCard label={t('common.successful')} value={totals.success} icon={<CheckCircle2 size={20} />} tone="green" />
+        <StatCard label={t('status.failed')} value={totals.failed} icon={<XCircle size={20} />} tone="red" />
       </div>
 
       <Card>
-        <CardHeader title="Collection trend" subtitle={`Daily collection over the last ${days} days`} />
+        <CardHeader title={t('analytics.collectionTrend')} subtitle={t('analytics.collectionTrendSubtitle', { days })} />
         <CardBody>
           {report.isError ? (
-            <ErrorState message="Could not load analytics." />
+            <ErrorState message={t('analytics.loadError')} />
           ) : report.isLoading ? (
             <LoadingBlock />
           ) : chartData.length ? (
             <CollectionChart data={chartData} />
           ) : (
-            <EmptyState title="No collection data yet" icon={<BarChart3 size={22} />} />
+            <EmptyState title={t('analytics.noCollectionData')} icon={<BarChart3 size={22} />} />
           )}
         </CardBody>
       </Card>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader title="Payment outcomes" subtitle="Transaction counts by status" />
+          <CardHeader title={t('analytics.paymentOutcomes')} subtitle={t('analytics.paymentOutcomesSubtitle')} />
           <CardBody>
             {report.isError ? (
-              <ErrorState message="Could not load analytics." />
+              <ErrorState message={t('analytics.loadError')} />
             ) : report.isLoading ? (
               <LoadingBlock />
             ) : totals.success + totals.pending + totals.failed > 0 ? (
               <CountBars data={statusBars} />
             ) : (
-              <EmptyState title="No transactions in this range" icon={<Clock size={22} />} />
+              <EmptyState title={t('analytics.noTransactionsInRange')} icon={<Clock size={22} />} />
             )}
           </CardBody>
         </Card>
 
         <Card>
-          <CardHeader title="Success rate" subtitle="Share of transactions that completed" />
+          <CardHeader title={t('analytics.successRate')} subtitle={t('analytics.successRateSubtitle')} />
           <CardBody>
             <SuccessRate success={totals.success} pending={totals.pending} failed={totals.failed} />
           </CardBody>
@@ -125,6 +128,7 @@ export default function AnalyticsPage() {
 }
 
 function SuccessRate({ success, pending, failed }: { success: number; pending: number; failed: number }) {
+  const t = useT();
   const total = success + pending + failed;
   const pct = total ? Math.round((success / total) * 100) : 0;
   const seg = (n: number) => (total ? (n / total) * 100 : 0);
@@ -132,7 +136,7 @@ function SuccessRate({ success, pending, failed }: { success: number; pending: n
     <div className="space-y-5 py-2">
       <div className="flex items-baseline gap-2">
         <span className="text-4xl font-semibold text-ink">{pct}%</span>
-        <span className="text-sm text-ink-muted">of {total} transaction(s) succeeded</span>
+        <span className="text-sm text-ink-muted">{t('analytics.succeededOf', { total })}</span>
       </div>
       <div className="flex h-3 w-full overflow-hidden rounded-full bg-surface-2">
         <div className="bg-emerald-500" style={{ width: `${seg(success)}%` }} />
@@ -140,9 +144,9 @@ function SuccessRate({ success, pending, failed }: { success: number; pending: n
         <div className="bg-rose-500" style={{ width: `${seg(failed)}%` }} />
       </div>
       <div className="grid grid-cols-3 gap-3 text-sm">
-        <Legend color="bg-emerald-500" label="Success" value={success} />
-        <Legend color="bg-amber-400" label="Pending" value={pending} />
-        <Legend color="bg-rose-500" label="Failed" value={failed} />
+        <Legend color="bg-emerald-500" label={t('status.success')} value={success} />
+        <Legend color="bg-amber-400" label={t('status.pending')} value={pending} />
+        <Legend color="bg-rose-500" label={t('status.failed')} value={failed} />
       </div>
     </div>
   );

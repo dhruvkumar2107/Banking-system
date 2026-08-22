@@ -3,6 +3,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../data/api_client.dart';
 import '../data/repositories/auth_repository.dart';
+import '../data/repositories/kyc_repository.dart';
+import '../data/repositories/loans_repository.dart';
 import '../data/repositories/me_repository.dart';
 import '../data/repositories/notifications_repository.dart';
 import '../data/repositories/payments_repository.dart';
@@ -47,4 +49,12 @@ final notificationsRepositoryProvider = Provider<NotificationsRepository>(
 
 final villagesRepositoryProvider = Provider<VillagesRepository>(
   (ref) => VillagesRepository(ref.watch(apiClientProvider)),
+);
+
+final kycRepositoryProvider = Provider<KycRepository>(
+  (ref) => KycRepository(ref.watch(apiClientProvider)),
+);
+
+final loansRepositoryProvider = Provider<LoansRepository>(
+  (ref) => LoansRepository(ref.watch(apiClientProvider)),
 );

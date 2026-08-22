@@ -22,6 +22,12 @@ export const AuditAction = {
   BANK_DETAILS_UPDATED: 'customer.bank_details_updated',
   NOMINEE_UPDATED: 'customer.nominee_updated',
   NOMINEE_DELETED: 'customer.nominee_deleted',
+  // KYC (mandatory gate — every transition is recorded, bypass especially)
+  KYC_SUBMITTED: 'kyc.submitted',
+  KYC_VERIFIED: 'kyc.verified',
+  KYC_REJECTED: 'kyc.rejected',
+  KYC_BYPASSED: 'kyc.bypassed',
+  KYC_BLOCKED: 'kyc.blocked_attempt',
   // pigmy / ledger
   PIGMY_CREATED: 'pigmy.created',
   PIGMY_STATUS_CHANGED: 'pigmy.status_changed',
@@ -36,6 +42,18 @@ export const AuditAction = {
   WITHDRAWAL_CANCELLED: 'withdrawal.cancelled',
   WITHDRAWAL_PAID: 'withdrawal.paid',
   SCHEME_UPDATED: 'scheme.updated',
+  // loans (maker-checker: request → decide → disburse → repay)
+  LOAN_REQUESTED: 'loan.requested',
+  LOAN_APPROVED: 'loan.approved',
+  LOAN_REJECTED: 'loan.rejected',
+  LOAN_CANCELLED: 'loan.cancelled',
+  LOAN_DISBURSED: 'loan.disbursed',
+  LOAN_REPAYMENT_RECORDED: 'loan.repayment_recorded',
+  LOAN_INSTALMENT_WAIVED: 'loan.instalment_waived',
+  LOAN_CLOSED: 'loan.closed',
+  LOAN_DEFAULTED: 'loan.defaulted',
+  LOAN_OVERDUE_MARKED: 'loan.overdue_marked',
+  LOAN_SETTINGS_UPDATED: 'loan.settings_updated',
   // payments
   PAYMENT_ORDER_CREATED: 'payment.order_created',
   PAYMENT_SUCCESS: 'payment.success',

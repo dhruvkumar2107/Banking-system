@@ -2,6 +2,7 @@ import { Body, Controller, Get, Ip, Param, ParseUUIDPipe, Post, Query } from '@n
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentCustomerId } from '../../common/decorators/current-customer.decorator';
 import { paginate, PaginationQueryDto } from '../../common/dto/pagination.dto';
+import { RequiresKyc } from '../kyc/kyc.guard';
 import { CreateWithdrawalDto } from './withdrawals.dto';
 import { WithdrawalsService } from './withdrawals.service';
 import { SchemeService } from './scheme.service';
@@ -49,6 +50,7 @@ export class WithdrawalsController {
   }
 
   @Post()
+  @RequiresKyc()
   @ApiOperation({ summary: 'Request a withdrawal (goes to an admin for approval)' })
   create(
     @CurrentCustomerId() customerId: string,

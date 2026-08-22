@@ -8,6 +8,8 @@ import {
   Receipt,
   Clock,
   HandCoins,
+  Landmark,
+  ShieldCheck,
   CalendarRange,
   Map,
   TrendingUp,
@@ -16,10 +18,12 @@ import {
   Settings,
 } from 'lucide-react';
 import type { AdminRole } from '@/lib/types';
+import type { TranslationKey } from '@/lib/i18n/dictionaries';
 
 export interface NavItem {
   href: string;
-  label: string;
+  /** i18n key resolved by the Sidebar / Topbar via useT(). */
+  labelKey: TranslationKey;
   icon: LucideIcon;
   roles?: AdminRole[]; // undefined = all roles
   /** Live counter rendered next to the label. */
@@ -27,58 +31,61 @@ export interface NavItem {
 }
 
 export interface NavGroup {
-  title: string;
+  titleKey: TranslationKey;
   items: NavItem[];
 }
 
 export const NAV: NavGroup[] = [
   {
-    title: 'Overview',
+    titleKey: 'nav.groupOverview',
     items: [
-      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-      { href: '/collection', label: "Today's Collection", icon: Wallet },
+      { href: '/dashboard', labelKey: 'nav.dashboard', icon: LayoutDashboard },
+      { href: '/collection', labelKey: 'nav.collection', icon: Wallet },
     ],
   },
   {
-    title: 'Manage',
+    titleKey: 'nav.groupManage',
     items: [
-      { href: '/villages', label: 'Villages', icon: Building2 },
-      { href: '/customers', label: 'Customers', icon: Users },
-      { href: '/pigmy-accounts', label: 'Pigmy Accounts', icon: PiggyBank },
+      { href: '/villages', labelKey: 'nav.villages', icon: Building2 },
+      { href: '/customers', labelKey: 'nav.customers', icon: Users },
+      { href: '/pigmy-accounts', labelKey: 'nav.pigmyAccounts', icon: PiggyBank },
+      // Agents may read the KYC queue but not decide on submissions.
+      { href: '/kyc', labelKey: 'nav.kyc', icon: ShieldCheck, roles: ['superadmin', 'admin', 'agent'] },
     ],
   },
   {
-    title: 'Payments',
+    titleKey: 'nav.groupPayments',
     items: [
-      { href: '/transactions', label: 'Transactions', icon: Receipt },
-      { href: '/pending-payments', label: 'Pending Payments', icon: Clock },
+      { href: '/transactions', labelKey: 'nav.transactions', icon: Receipt },
+      { href: '/pending-payments', labelKey: 'nav.pendingPayments', icon: Clock },
       {
         href: '/withdrawals',
-        label: 'Withdrawals',
+        labelKey: 'nav.withdrawals',
         icon: HandCoins,
         badge: 'withdrawalsPending',
       },
+      { href: '/loans', labelKey: 'nav.loans', icon: Landmark, roles: ['superadmin', 'admin'] },
     ],
   },
   {
-    title: 'Insights',
+    titleKey: 'nav.groupInsights',
     items: [
-      { href: '/reports/date-wise', label: 'Date-wise Reports', icon: CalendarRange },
-      { href: '/reports/village-wise', label: 'Village-wise Reports', icon: Map },
-      { href: '/analytics', label: 'Collection Analytics', icon: TrendingUp },
+      { href: '/reports/date-wise', labelKey: 'nav.dateWise', icon: CalendarRange },
+      { href: '/reports/village-wise', labelKey: 'nav.villageWise', icon: Map },
+      { href: '/analytics', labelKey: 'nav.analytics', icon: TrendingUp },
     ],
   },
   {
-    title: 'System',
+    titleKey: 'nav.groupSystem',
     items: [
-      { href: '/notifications', label: 'Notifications', icon: Bell, roles: ['superadmin', 'admin'] },
-      { href: '/audit-logs', label: 'Audit Logs', icon: FileClock, roles: ['superadmin', 'admin'] },
-      { href: '/settings', label: 'Settings', icon: Settings },
+      { href: '/notifications', labelKey: 'nav.notifications', icon: Bell, roles: ['superadmin', 'admin'] },
+      { href: '/audit-logs', labelKey: 'nav.auditLogs', icon: FileClock, roles: ['superadmin', 'admin'] },
+      { href: '/settings', labelKey: 'nav.settings', icon: Settings },
     ],
   },
 ];
 
-/** Flat lookup of href → label for page titles. */
-export const NAV_TITLES: Record<string, string> = Object.fromEntries(
-  NAV.flatMap((g) => g.items).map((i) => [i.href, i.label]),
+/** Flat lookup of href → i18n key for page titles. */
+export const NAV_TITLE_KEYS: Record<string, TranslationKey> = Object.fromEntries(
+  NAV.flatMap((g) => g.items).map((i) => [i.href, i.labelKey] as const),
 );

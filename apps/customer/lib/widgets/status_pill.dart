@@ -55,4 +55,51 @@ class StatusPill extends StatelessWidget {
         return StatusPill(label: label, color: PigmeeColors.amber, icon: Icons.schedule_rounded);
     }
   }
+
+  /// Pill for a loan status value (`pending` | `approved` | `rejected` |
+  /// `cancelled` | `disbursed` | `closed` | `defaulted`).
+  static StatusPill loan(String status, String label) {
+    switch (status) {
+      case 'approved':
+        return StatusPill(label: label, color: PigmeeColors.indigo, icon: Icons.task_alt_rounded);
+      case 'disbursed':
+        return StatusPill(label: label, color: PigmeeColors.emerald, icon: Icons.payments_rounded);
+      case 'closed':
+        return StatusPill(
+          label: label,
+          color: PigmeeColors.inkMuted,
+          icon: Icons.check_circle_rounded,
+        );
+      case 'rejected':
+        return StatusPill(label: label, color: PigmeeColors.rose, icon: Icons.cancel_rounded);
+      case 'cancelled':
+        return StatusPill(
+          label: label,
+          color: PigmeeColors.inkMuted,
+          icon: Icons.remove_circle_outline_rounded,
+        );
+      case 'defaulted':
+        return StatusPill(label: label, color: PigmeeColors.rose, icon: Icons.warning_rounded);
+      default:
+        return StatusPill(label: label, color: PigmeeColors.amber, icon: Icons.hourglass_top_rounded);
+    }
+  }
+
+  /// Pill for an instalment status value (`due` | `paid` | `overdue` | `waived`).
+  static StatusPill instalment(String status, String label) {
+    switch (status) {
+      case 'paid':
+        return StatusPill(label: label, color: PigmeeColors.emerald, icon: Icons.check_circle_rounded);
+      case 'overdue':
+        return StatusPill(label: label, color: PigmeeColors.rose, icon: Icons.error_rounded);
+      case 'waived':
+        return StatusPill(
+          label: label,
+          color: PigmeeColors.violet,
+          icon: Icons.volunteer_activism_rounded,
+        );
+      default:
+        return StatusPill(label: label, color: PigmeeColors.amber, icon: Icons.schedule_rounded);
+    }
+  }
 }

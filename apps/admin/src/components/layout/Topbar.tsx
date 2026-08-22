@@ -6,26 +6,25 @@ import { Menu, ChevronDown, LogOut, UserRound } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { useAuth } from '@/lib/auth';
 import { initials } from '@/lib/format';
-import { NAV_TITLES } from './nav';
+import { useT, type Translator } from '@/lib/i18n';
+import { NAV_TITLE_KEYS } from './nav';
 import { ThemeToggle } from './ThemeToggle';
+import { LanguageToggle } from './LanguageToggle';
 
-const ROLE_LABEL: Record<string, string> = {
-  superadmin: 'Super Admin',
-  admin: 'Admin',
-  agent: 'Agent',
-};
-
-function titleFor(pathname: string): string {
-  if (NAV_TITLES[pathname]) return NAV_TITLES[pathname];
-  if (pathname.startsWith('/customers/')) return 'Customer 360°';
-  if (pathname.startsWith('/villages/')) return 'Village Details';
-  if (pathname.startsWith('/pigmy-accounts/')) return 'Account Details';
+function titleFor(pathname: string, t: Translator): string {
+  const key = NAV_TITLE_KEYS[pathname];
+  if (key) return t(key);
+  if (pathname.startsWith('/customers/')) return t('customers.detailTitle');
+  if (pathname.startsWith('/villages/')) return t('villages.detailTitle');
+  if (pathname.startsWith('/pigmy-accounts/')) return t('accounts.detailTitle');
+  if (pathname.startsWith('/loans/')) return t('loans.detailTitle');
   return 'Digital Pigmee';
 }
 
 export function Topbar({ onMenu }: { onMenu: () => void }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const t = useT();
   const [menuOpen, setMenuOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -43,14 +42,15 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
         <button
           className="rounded-xl p-2 text-ink-soft transition hover:bg-surface-2 lg:hidden"
           onClick={onMenu}
-          aria-label="Open menu"
+          aria-label={t('common.openMenu')}
         >
           <Menu size={20} />
         </button>
-        <h2 className="text-lg font-semibold tracking-tight text-ink">{titleFor(pathname)}</h2>
+        <h2 className="text-lg font-semibold tracking-tight text-ink">{titleFor(pathname, t)}</h2>
       </div>
 
       <div className="flex items-center gap-1.5">
+        <LanguageToggle />
         <ThemeToggle />
 
         <div className="relative" ref={ref}>
@@ -64,7 +64,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
             <span className="hidden text-left sm:block">
               <span className="block text-sm font-medium leading-tight text-ink">{user?.name}</span>
               <span className="block text-[11px] leading-tight text-ink-muted">
-                {user ? ROLE_LABEL[user.role] : ''}
+                {user ? t(`role.${user.role}`) : ''}
               </span>
             </span>
             <ChevronDown size={16} className="text-ink-muted" />
@@ -86,7 +86,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
                 onClick={() => setMenuOpen(false)}
                 className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-ink-soft transition hover:bg-surface-2"
               >
-                <UserRound size={16} className="text-ink-muted" /> Account &amp; settings
+                <UserRound size={16} className="text-ink-muted" /> {t('nav.accountSettings')}
               </a>
               <button
                 onClick={() => {
@@ -95,7 +95,7 @@ export function Topbar({ onMenu }: { onMenu: () => void }) {
                 }}
                 className="flex w-full items-center gap-2.5 border-t border-line-soft px-4 py-2.5 text-left text-sm text-rose-600 transition hover:bg-rose-500/10"
               >
-                <LogOut size={16} /> Sign out
+                <LogOut size={16} /> {t('nav.logout')}
               </button>
             </div>
           )}

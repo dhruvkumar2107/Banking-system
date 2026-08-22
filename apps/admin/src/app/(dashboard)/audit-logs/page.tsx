@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { ScrollText, Eye } from 'lucide-react';
 import { useAuditLogs } from '@/lib/hooks';
 import { formatDateTime } from '@/lib/format';
+import { useT, type TranslationKey } from '@/lib/i18n';
 import type { AuditLog } from '@/lib/types';
 import {
   PageHeader,
@@ -28,25 +29,29 @@ import {
   Td,
 } from '@/components/ui';
 
-const ACTIONS: { value: string; label: string }[] = [
-  { value: 'admin.login', label: 'Admin login' },
-  { value: 'village.created', label: 'Village created' },
-  { value: 'village.updated', label: 'Village updated' },
-  { value: 'admin.created', label: 'Admin created' },
-  { value: 'admin.updated', label: 'Admin updated' },
-  { value: 'customer.registered', label: 'Customer registered' },
-  { value: 'customer.updated', label: 'Customer updated' },
-  { value: 'customer.kyc_updated', label: 'KYC updated' },
-  { value: 'customer.document_verified', label: 'Document verified' },
-  { value: 'customer.bank_details_updated', label: 'Bank details updated' },
-  { value: 'pigmy.created', label: 'Pigmy account created' },
-  { value: 'pigmy.status_changed', label: 'Pigmy status changed' },
-  { value: 'ledger.credit', label: 'Ledger credit' },
-  { value: 'ledger.debit', label: 'Ledger debit' },
-  { value: 'payment.success', label: 'Payment success' },
-  { value: 'payment.failed', label: 'Payment failed' },
-  { value: 'payment.webhook_received', label: 'Payment webhook' },
-  { value: 'notification.broadcast', label: 'Broadcast sent' },
+/**
+ * Module scope cannot call `t()`, so entries carry a key and the label is
+ * resolved at render — the same convention as `components/layout/nav.ts`.
+ */
+const ACTIONS: { value: string; labelKey: TranslationKey }[] = [
+  { value: 'admin.login', labelKey: 'auditLogs.actionAdminLogin' },
+  { value: 'village.created', labelKey: 'auditLogs.actionVillageCreated' },
+  { value: 'village.updated', labelKey: 'auditLogs.actionVillageUpdated' },
+  { value: 'admin.created', labelKey: 'auditLogs.actionAdminCreated' },
+  { value: 'admin.updated', labelKey: 'auditLogs.actionAdminUpdated' },
+  { value: 'customer.registered', labelKey: 'auditLogs.actionCustomerRegistered' },
+  { value: 'customer.updated', labelKey: 'auditLogs.actionCustomerUpdated' },
+  { value: 'customer.kyc_updated', labelKey: 'auditLogs.actionKycUpdated' },
+  { value: 'customer.document_verified', labelKey: 'auditLogs.actionDocumentVerified' },
+  { value: 'customer.bank_details_updated', labelKey: 'auditLogs.actionBankDetailsUpdated' },
+  { value: 'pigmy.created', labelKey: 'auditLogs.actionPigmyCreated' },
+  { value: 'pigmy.status_changed', labelKey: 'auditLogs.actionPigmyStatusChanged' },
+  { value: 'ledger.credit', labelKey: 'auditLogs.actionLedgerCredit' },
+  { value: 'ledger.debit', labelKey: 'auditLogs.actionLedgerDebit' },
+  { value: 'payment.success', labelKey: 'auditLogs.actionPaymentSuccess' },
+  { value: 'payment.failed', labelKey: 'auditLogs.actionPaymentFailed' },
+  { value: 'payment.webhook_received', labelKey: 'auditLogs.actionPaymentWebhook' },
+  { value: 'notification.broadcast', labelKey: 'auditLogs.actionBroadcastSent' },
 ];
 
 function actorTone(actorType: string) {
@@ -56,6 +61,7 @@ function actorTone(actorType: string) {
 }
 
 export default function AuditLogsPage() {
+  const t = useT();
   const [entity, setEntity] = useState('');
   const [action, setAction] = useState('');
   const [from, setFrom] = useState('');
@@ -83,27 +89,27 @@ export default function AuditLogsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Audit Logs"
-        subtitle="Immutable, read-only record of every balance-affecting and administrative action."
+        title={t('auditLogs.title')}
+        subtitle={t('auditLogs.subtitle')}
       />
 
       <Card>
         <CardBody className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
-            <Field label="Action" className="w-56">
+            <Field label={t('auditLogs.action')} className="w-56">
               <Select value={action} onChange={(e) => { setAction(e.target.value); setPage(1); }}>
-                <option value="">All actions</option>
+                <option value="">{t('auditLogs.allActions')}</option>
                 {ACTIONS.map((a) => (
-                  <option key={a.value} value={a.value}>{a.label}</option>
+                  <option key={a.value} value={a.value}>{t(a.labelKey)}</option>
                 ))}
               </Select>
             </Field>
-            <Field label="Entity" className="w-44">
-              <Input placeholder="e.g. customer" value={entity} onChange={(e) => { setEntity(e.target.value); setPage(1); }} />
+            <Field label={t('auditLogs.entity')} className="w-44">
+              <Input placeholder={t('auditLogs.entityPlaceholder')} value={entity} onChange={(e) => { setEntity(e.target.value); setPage(1); }} />
             </Field>
-            <Field label="From" className="w-40"><Input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} /></Field>
-            <Field label="To" className="w-40"><Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} /></Field>
-            <Button variant="outline" onClick={reset}>Reset</Button>
+            <Field label={t('common.from')} className="w-40"><Input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPage(1); }} /></Field>
+            <Field label={t('common.to')} className="w-40"><Input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPage(1); }} /></Field>
+            <Button variant="outline" onClick={reset}>{t('common.reset')}</Button>
           </div>
 
           {logs.isLoading ? (
@@ -116,12 +122,12 @@ export default function AuditLogsPage() {
                 <Table>
                   <Thead>
                     <Tr>
-                      <Th>When</Th>
-                      <Th>Actor</Th>
-                      <Th>Action</Th>
-                      <Th>Entity</Th>
-                      <Th>IP</Th>
-                      <Th className="text-right">Details</Th>
+                      <Th>{t('auditLogs.when')}</Th>
+                      <Th>{t('auditLogs.actor')}</Th>
+                      <Th>{t('auditLogs.action')}</Th>
+                      <Th>{t('auditLogs.entity')}</Th>
+                      <Th>{t('auditLogs.ip')}</Th>
+                      <Th className="text-right">{t('auditLogs.details')}</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -141,7 +147,7 @@ export default function AuditLogsPage() {
                         <Td className="font-mono text-xs text-ink-muted">{row.ip || '—'}</Td>
                         <Td className="text-right">
                           <Button variant="ghost" size="sm" onClick={() => setDetail(row)}>
-                            <Eye size={14} /> View
+                            <Eye size={14} /> {t('common.view')}
                           </Button>
                         </Td>
                       </Tr>
@@ -158,7 +164,7 @@ export default function AuditLogsPage() {
               />
             </>
           ) : (
-            <EmptyState title="No audit entries found" icon={<ScrollText size={22} />} />
+            <EmptyState title={t('auditLogs.noneFound')} icon={<ScrollText size={22} />} />
           )}
         </CardBody>
       </Card>
@@ -169,21 +175,22 @@ export default function AuditLogsPage() {
 }
 
 function DetailModal({ log, onClose }: { log: AuditLog; onClose: () => void }) {
+  const t = useT();
   return (
-    <Modal open onClose={onClose} title="Audit entry" size="lg" footer={<Button variant="outline" onClick={onClose}>Close</Button>}>
+    <Modal open onClose={onClose} title={t('auditLogs.entryTitle')} size="lg" footer={<Button variant="outline" onClick={onClose}>{t('common.close')}</Button>}>
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4 text-sm">
-          <Meta label="Action" value={<span className="font-mono text-xs">{log.action}</span>} />
-          <Meta label="Actor type" value={log.actorType} />
-          <Meta label="Actor ID" value={log.actorId ? <span className="font-mono text-xs">{log.actorId}</span> : '—'} />
-          <Meta label="IP" value={<span className="font-mono text-xs">{log.ip || '—'}</span>} />
-          <Meta label="Entity" value={log.entity || '—'} />
-          <Meta label="Entity ID" value={log.entityId ? <span className="font-mono text-xs">{log.entityId}</span> : '—'} />
-          <Meta label="Timestamp" value={formatDateTime(log.createdAt)} />
+          <Meta label={t('auditLogs.action')} value={<span className="font-mono text-xs">{log.action}</span>} />
+          <Meta label={t('auditLogs.actorType')} value={log.actorType} />
+          <Meta label={t('auditLogs.actorId')} value={log.actorId ? <span className="font-mono text-xs">{log.actorId}</span> : '—'} />
+          <Meta label={t('auditLogs.ip')} value={<span className="font-mono text-xs">{log.ip || '—'}</span>} />
+          <Meta label={t('auditLogs.entity')} value={log.entity || '—'} />
+          <Meta label={t('auditLogs.entityId')} value={log.entityId ? <span className="font-mono text-xs">{log.entityId}</span> : '—'} />
+          <Meta label={t('auditLogs.timestamp')} value={formatDateTime(log.createdAt)} />
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <JsonBlock title="Before" value={log.before} />
-          <JsonBlock title="After" value={log.after} />
+          <JsonBlock title={t('auditLogs.before')} value={log.before} />
+          <JsonBlock title={t('auditLogs.after')} value={log.after} />
         </div>
       </div>
     </Modal>

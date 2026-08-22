@@ -45,6 +45,52 @@ export const withdrawalStatusEnum = pgEnum('withdrawal_status', [
 export const withdrawalKindEnum = pgEnum('withdrawal_kind', ['partial', 'closure', 'maturity']);
 export const payoutMethodEnum = pgEnum('payout_method', ['bank_transfer', 'cash']);
 
+// ── Loans ───────────────────────────────────────────────────────────────────
+// A loan moves through a maker-checker state machine, mirroring withdrawals:
+//   pending → approved → disbursed → closed
+//   pending ──────────→ rejected      (by an admin)
+//   pending ──────────→ cancelled     (by the customer)
+//   disbursed ────────→ defaulted     (by an admin, after overdue instalments)
+export const loanStatusEnum = pgEnum('loan_status', [
+  'pending',
+  'approved',
+  'rejected',
+  'cancelled',
+  'disbursed',
+  'closed',
+  'defaulted',
+]);
+/** Per-instalment state. `waived` lets an admin forgive one without a payment. */
+export const loanInstalmentStatusEnum = pgEnum('loan_instalment_status', [
+  'due',
+  'paid',
+  'overdue',
+  'waived',
+]);
+/**
+ * How an instalment was repaid. `from_savings` posts a ledger DEBIT against the
+ * customer's pigmy account; the other two are recorded off-ledger with a reference.
+ */
+export const repaymentMethodEnum = pgEnum('repayment_method', [
+  'cash',
+  'bank_transfer',
+  'from_savings',
+]);
+
+// ── KYC ─────────────────────────────────────────────────────────────────────
+/**
+ * KYC lifecycle, distinct from the older `kyc_status` verdict column:
+ *   not_started → submitted → verified | rejected
+ * `bypassed` is a deliberate admin override, always with a reason and an audit row.
+ */
+export const kycStageEnum = pgEnum('kyc_stage', [
+  'not_started',
+  'submitted',
+  'verified',
+  'rejected',
+  'bypassed',
+]);
+
 const money = (name: string) => bigint(name, { mode: 'number' });
 const createdAt = () => timestamp('created_at', { withTimezone: true }).defaultNow().notNull();
 const updatedAt = () => timestamp('updated_at', { withTimezone: true }).defaultNow().notNull();
@@ -70,12 +116,33 @@ export const customers = pgTable(
     address: text('address'),
     photoUrl: text('photo_url'),
     kycStatus: kycStatusEnum('kyc_status').notNull().default('pending'),
+    // ── KYC (mandatory before any money movement) ───────────────────────────
+    kycStage: kycStageEnum('kyc_stage').notNull().default('not_started'),
+    /**
+     * Aadhaar is NEVER stored in full. We keep the last 4 for display and a
+     * SHA-256 of the 12 digits so duplicate enrolments can be detected without
+     * the number ever being recoverable from the database or a backup.
+     */
+    aadhaarLast4: text('aadhaar_last4'),
+    aadhaarHash: text('aadhaar_hash'),
+    /** True when the profile photo came from a live camera capture, not the gallery. */
+    photoIsLive: boolean('photo_is_live').notNull().default(false),
+    photoCapturedAt: timestamp('photo_captured_at', { withTimezone: true }),
+    kycSubmittedAt: timestamp('kyc_submitted_at', { withTimezone: true }),
+    kycVerifiedAt: timestamp('kyc_verified_at', { withTimezone: true }),
+    kycVerifiedById: uuid('kyc_verified_by_id').references(() => admins.id),
+    kycRejectionReason: text('kyc_rejection_reason'),
+    /** An admin override — recorded with who and why, never silent. */
+    kycBypassedAt: timestamp('kyc_bypassed_at', { withTimezone: true }),
+    kycBypassReason: text('kyc_bypass_reason'),
+    kycBypassedById: uuid('kyc_bypassed_by_id').references(() => admins.id),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
   (t) => ({
     mobileIdx: uniqueIndex('customers_mobile_uq').on(t.mobile),
     villageIdx: index('customers_village_idx').on(t.villageId),
+    aadhaarIdx: uniqueIndex('customers_aadhaar_hash_uq').on(t.aadhaarHash),
   }),
 );
 
@@ -272,6 +339,117 @@ export const withdrawalRequests = pgTable(
   }),
 );
 
+// ── Loan settings (admin-configurable product terms) ────────────────────────
+// Same shape and philosophy as scheme_settings: at most one meaningful row,
+// newest wins, built-in defaults when the table is empty. Changing these never
+// re-prices an existing loan — terms are snapshotted onto the loan at approval.
+export const loanSettings = pgTable('loan_settings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  enabled: boolean('enabled').notNull().default(true),
+  minAmountPaise: money('min_amount_paise').notNull().default(100_000), // ₹1,000
+  maxAmountPaise: money('max_amount_paise').notNull().default(5_000_000), // ₹50,000
+  interestRateBps: integer('interest_rate_bps').notNull().default(1_200), // 12.00% p.a. flat
+  minTenureMonths: integer('min_tenure_months').notNull().default(3),
+  maxTenureMonths: integer('max_tenure_months').notNull().default(24),
+  /**
+   * Eligibility ceiling: a loan may not exceed this share of the customer's
+   * pigmy savings balance. 20 000 bps = 200% (borrow up to 2× your savings).
+   */
+  maxLoanToBalanceBps: integer('max_loan_to_balance_bps').notNull().default(20_000),
+  /** One-off fee deducted from the disbursed amount. */
+  processingFeeBps: integer('processing_fee_bps').notNull().default(100), // 1.00%
+  /** Minimum savings a customer must already hold to qualify. */
+  minSavingsPaise: money('min_savings_paise').notNull().default(50_000), // ₹500
+  updatedById: uuid('updated_by_id').references(() => admins.id),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
+// ── Loans (maker-checker) ───────────────────────────────────────────────────
+// Flat-rate interest: interest = principal × rate × months / (10 000 × 12),
+// computed once at approval and split into equal instalments. `outstandingPaise`
+// is DERIVED from loan_instalments — like the pigmy balance, it is never the
+// source of truth and is only written by LoansService inside a transaction.
+export const loans = pgTable(
+  'loans',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    customerId: uuid('customer_id')
+      .notNull()
+      .references(() => customers.id),
+    /** The savings account that establishes eligibility and can fund repayments. */
+    pigmyAccountId: uuid('pigmy_account_id')
+      .notNull()
+      .references(() => pigmyAccounts.id),
+    loanNumber: text('loan_number').notNull().unique(),
+    principal: money('principal').notNull(), // paise, as requested
+    purpose: text('purpose'),
+    status: loanStatusEnum('status').notNull().default('pending'),
+    // ── Terms SNAPSHOTTED at approval ──────────────────────────────────────
+    interestRateBps: integer('interest_rate_bps').notNull().default(1_200),
+    tenureMonths: integer('tenure_months').notNull(),
+    totalInterest: money('total_interest').notNull().default(0),
+    processingFee: money('processing_fee').notNull().default(0),
+    /** principal + totalInterest — the full amount the customer must repay. */
+    totalPayable: money('total_payable').notNull().default(0),
+    emiAmount: money('emi_amount').notNull().default(0),
+    /** DERIVED from instalments — remaining unpaid amount. */
+    outstandingPaise: money('outstanding_paise').notNull().default(0),
+    // ── Disbursal ───────────────────────────────────────────────────────────
+    disbursementMethod: payoutMethodEnum('disbursement_method').notNull().default('bank_transfer'),
+    bankAccountMasked: text('bank_account_masked'),
+    bankIfsc: text('bank_ifsc'),
+    reference: text('reference'), // UTR / voucher number
+    note: text('note'),
+    rejectionReason: text('rejection_reason'),
+    requestedAt: createdAt(),
+    decidedAt: timestamp('decided_at', { withTimezone: true }),
+    decidedById: uuid('decided_by_id').references(() => admins.id),
+    disbursedAt: timestamp('disbursed_at', { withTimezone: true }),
+    firstDueDate: timestamp('first_due_date', { withTimezone: true }),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+    updatedAt: updatedAt(),
+  },
+  (t) => ({
+    customerIdx: index('loans_customer_idx').on(t.customerId),
+    acctIdx: index('loans_acct_idx').on(t.pigmyAccountId),
+    statusIdx: index('loans_status_idx').on(t.status),
+    requestedIdx: index('loans_requested_idx').on(t.requestedAt),
+  }),
+);
+
+// ── Loan instalments (append-only repayment schedule) ───────────────────────
+// Generated in full at disbursal — one row per EMI. A payment fills amountPaid
+// / paidAt / method and flips the status; rows are never deleted, so the
+// repayment history is as auditable as the savings ledger.
+export const loanInstalments = pgTable(
+  'loan_instalments',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    loanId: uuid('loan_id')
+      .notNull()
+      .references(() => loans.id),
+    instalmentNo: integer('instalment_no').notNull(), // 1-based
+    dueDate: timestamp('due_date', { withTimezone: true }).notNull(),
+    amountDue: money('amount_due').notNull(),
+    amountPaid: money('amount_paid').notNull().default(0),
+    status: loanInstalmentStatusEnum('status').notNull().default('due'),
+    method: repaymentMethodEnum('method'),
+    reference: text('reference'),
+    /** Set when repaid via `from_savings`, linking to the pigmy ledger DEBIT. */
+    ledgerEntryId: uuid('ledger_entry_id').references(() => ledgerEntries.id),
+    paidAt: timestamp('paid_at', { withTimezone: true }),
+    recordedById: uuid('recorded_by_id').references(() => admins.id),
+    waivedReason: text('waived_reason'),
+    createdAt: createdAt(),
+  },
+  (t) => ({
+    loanIdx: index('loan_instalments_loan_idx').on(t.loanId, t.instalmentNo),
+    dueIdx: index('loan_instalments_due_idx').on(t.dueDate, t.status),
+    uniquePerLoan: uniqueIndex('loan_instalments_no_uq').on(t.loanId, t.instalmentNo),
+  }),
+);
+
 // ── Admins ──────────────────────────────────────────────────────────────────
 export const admins = pgTable('admins', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -366,6 +544,26 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
   bankDetails: many(customerBankDetails),
   pigmyAccounts: many(pigmyAccounts),
   notifications: many(notifications),
+  loans: many(loans),
+}));
+
+export const loansRelations = relations(loans, ({ one, many }) => ({
+  customer: one(customers, { fields: [loans.customerId], references: [customers.id] }),
+  pigmyAccount: one(pigmyAccounts, {
+    fields: [loans.pigmyAccountId],
+    references: [pigmyAccounts.id],
+  }),
+  decidedBy: one(admins, { fields: [loans.decidedById], references: [admins.id] }),
+  instalments: many(loanInstalments),
+}));
+
+export const loanInstalmentsRelations = relations(loanInstalments, ({ one }) => ({
+  loan: one(loans, { fields: [loanInstalments.loanId], references: [loans.id] }),
+  ledgerEntry: one(ledgerEntries, {
+    fields: [loanInstalments.ledgerEntryId],
+    references: [ledgerEntries.id],
+  }),
+  recordedBy: one(admins, { fields: [loanInstalments.recordedById], references: [admins.id] }),
 }));
 
 export const nomineesRelations = relations(nominees, ({ one }) => ({
@@ -438,3 +636,8 @@ export type Admin = typeof admins.$inferSelect;
 export type Notification = typeof notifications.$inferSelect;
 export type SchemeSettings = typeof schemeSettings.$inferSelect;
 export type WithdrawalRequest = typeof withdrawalRequests.$inferSelect;
+export type LoanSettings = typeof loanSettings.$inferSelect;
+export type Loan = typeof loans.$inferSelect;
+export type LoanInstalment = typeof loanInstalments.$inferSelect;
+export type Nominee = typeof nominees.$inferSelect;
+export type CustomerDocument = typeof customerDocuments.$inferSelect;

@@ -19,5 +19,6 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  "//": "scripts/ holds build-time Node tooling and i18n worklist fragments that are not valid modules. Leaving them in `include` is actively dangerous: a syntax error there makes tsc skip its whole semantic phase and report a falsely clean typecheck.",
+  "exclude": ["node_modules", "scripts"]
 }

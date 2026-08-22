@@ -1,4 +1,7 @@
+'use client';
+
 import { cn } from '@/lib/cn';
+import { useT } from '@/lib/i18n';
 
 export function Spinner({ size = 16, className }: { size?: number; className?: string }) {
   return (
@@ -20,12 +23,17 @@ export function Spinner({ size = 16, className }: { size?: number; className?: s
   );
 }
 
-/** Centered loading state for a page/section. */
-export function LoadingBlock({ label = 'Loading…' }: { label?: string }) {
+/**
+ * Centered loading state for a page/section. The default label is resolved at
+ * render time rather than in the parameter list, so it follows the active locale
+ * while callers that pass their own `label` keep overriding it as before.
+ */
+export function LoadingBlock({ label }: { label?: string }) {
+  const t = useT();
   return (
     <div className="flex items-center justify-center gap-3 py-16 text-ink-muted">
       <Spinner size={20} />
-      <span className="text-sm">{label}</span>
+      <span className="text-sm">{label ?? t('common.loading')}</span>
     </div>
   );
 }

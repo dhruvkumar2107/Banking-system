@@ -1,4 +1,8 @@
+'use client';
+
 import { cn } from '@/lib/cn';
+import { useT } from '@/lib/i18n';
+import type { TranslationKey } from '@/lib/i18n';
 import type { ReactNode } from 'react';
 
 type Tone = 'green' | 'amber' | 'red' | 'blue' | 'slate' | 'indigo';
@@ -40,18 +44,23 @@ const STATUS_TONE: Record<string, Tone> = {
   rejected: 'red',
 };
 
-const STATUS_LABEL: Record<string, string> = {
-  success: 'Success',
-  pending: 'Pending',
-  failed: 'Failed',
-  active: 'Active',
-  inactive: 'Inactive',
-  closed: 'Closed',
-  verified: 'Verified',
-  rejected: 'Rejected',
+/**
+ * Status → dictionary key. Covers the payment, account and KYC status unions,
+ * all of which already live in the `status.*` namespace.
+ */
+const STATUS_LABEL_KEY: Record<string, TranslationKey> = {
+  success: 'status.success',
+  pending: 'status.pending',
+  failed: 'status.failed',
+  active: 'status.active',
+  inactive: 'status.inactive',
+  closed: 'status.closed',
+  verified: 'status.verified',
+  rejected: 'status.rejected',
 };
 
 export function StatusBadge({ status }: { status: string }) {
+  const t = useT();
   const tone = STATUS_TONE[status] ?? 'slate';
   const dot: Record<Tone, string> = {
     green: 'bg-emerald-500',
@@ -61,10 +70,12 @@ export function StatusBadge({ status }: { status: string }) {
     slate: 'bg-ink-faint',
     indigo: 'bg-brand-500',
   };
+  const key = STATUS_LABEL_KEY[status];
   return (
     <Badge tone={tone}>
       <span className={cn('h-1.5 w-1.5 rounded-full', dot[tone])} />
-      {STATUS_LABEL[status] ?? status}
+      {/* Unmapped statuses still render their raw value, as before. */}
+      {key ? t(key) : status}
     </Badge>
   );
 }

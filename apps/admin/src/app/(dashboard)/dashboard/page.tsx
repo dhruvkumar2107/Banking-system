@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Wallet, PiggyBank, Users, Landmark, TrendingUp, ArrowRight } from 'lucide-react';
 import { useAnalytics, useDashboard, useVillageWise } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth';
+import { useT, type TranslationKey } from '@/lib/i18n';
 import { money, formatDayShort, inr } from '@/lib/format';
 import {
   Card,
@@ -23,15 +24,22 @@ export default function DashboardPage() {
   const analytics = useAnalytics(14);
   const villages = useVillageWise({});
   const { user } = useAuth();
+  const t = useT();
 
   // Time-of-day greeting is resolved client-side to avoid SSR hydration drift.
-  const [greeting, setGreeting] = useState('Welcome back');
+  const [greetingKey, setGreetingKey] = useState<TranslationKey>('dashboard.greetingWelcome');
   useEffect(() => {
     const h = new Date().getHours();
-    setGreeting(h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening');
+    setGreetingKey(
+      h < 12
+        ? 'dashboard.greetingMorning'
+        : h < 17
+          ? 'dashboard.greetingAfternoon'
+          : 'dashboard.greetingEvening',
+    );
   }, []);
 
-  if (dash.isLoading) return <LoadingBlock label="Loading dashboard…" />;
+  if (dash.isLoading) return <LoadingBlock label={t('dashboard.loading')} />;
   if (dash.isError || !dash.data) return <ErrorState message={(dash.error as Error)?.message} />;
 
   const d = dash.data;
@@ -60,46 +68,46 @@ export default function DashboardPage() {
         <div className="relative flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-sm font-medium text-ink-muted">
-              {greeting}
+              {t(greetingKey)}
               {firstName ? `, ${firstName}` : ''} 👋
             </p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
-              <span className="text-gradient">Dashboard</span>{' '}
-              <span className="text-ink">overview</span>
+              <span className="text-gradient">{t('dashboard.title')}</span>{' '}
+              <span className="text-ink">{t('dashboard.titleSuffix')}</span>
             </h1>
             <p className="mt-1.5 max-w-lg text-sm text-ink-muted">
-              Here&apos;s how your micro-savings network is performing today.
+              {t('dashboard.subtitle')}
             </p>
           </div>
           <Link href="/collection" className="btn-primary shrink-0">
-            <Wallet size={16} /> Record collection
+            <Wallet size={16} /> {t('dashboard.recordCollection')}
           </Link>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Today's Collection"
+          label={t('dashboard.todaysCollection')}
           value={money(d.todayCollection)}
           icon={<Wallet size={20} />}
           tone="indigo"
-          hint={`${d.todayCounts.success} successful today`}
+          hint={t('dashboard.successfulToday', { count: d.todayCounts.success })}
         />
         <StatCard
-          label="Total Balance"
+          label={t('dashboard.totalBalance')}
           value={money(d.totalBalance)}
           icon={<Landmark size={20} />}
           tone="green"
-          hint="Across all accounts"
+          hint={t('dashboard.acrossAllAccounts')}
         />
         <StatCard
-          label="Active Accounts"
+          label={t('dashboard.activeAccounts')}
           value={d.activeAccounts.toLocaleString('en-IN')}
           icon={<PiggyBank size={20} />}
           tone="amber"
         />
         <StatCard
-          label="Total Customers"
+          label={t('dashboard.totalCustomers')}
           value={d.totalCustomers.toLocaleString('en-IN')}
           icon={<Users size={20} />}
           tone="slate"
@@ -109,11 +117,11 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader
-            title="Collection trend"
-            subtitle="Successful collections over the last 14 days"
+            title={t('dashboard.collectionTrend')}
+            subtitle={t('dashboard.collectionTrendSubtitle')}
             action={
               <Link href="/analytics" className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700">
-                Analytics <ArrowRight size={13} />
+                {t('analytics.title')} <ArrowRight size={13} />
               </Link>
             }
           />
@@ -123,28 +131,28 @@ export default function DashboardPage() {
             ) : chartData.length ? (
               <CollectionChart data={chartData} />
             ) : (
-              <EmptyState title="No collection data yet" icon={<TrendingUp size={22} />} />
+              <EmptyState title={t('dashboard.noCollectionData')} icon={<TrendingUp size={22} />} />
             )}
           </CardBody>
         </Card>
 
         <Card>
-          <CardHeader title="Today at a glance" />
+          <CardHeader title={t('dashboard.todayAtAGlance')} />
           <CardBody className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-ink-soft">Successful</span>
+              <span className="text-sm text-ink-soft">{t('common.successful')}</span>
               <Badge tone="green">{d.todayCounts.success}</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-ink-soft">Pending</span>
+              <span className="text-sm text-ink-soft">{t('status.pending')}</span>
               <Badge tone="amber">{d.todayCounts.pending}</Badge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-ink-soft">Failed</span>
+              <span className="text-sm text-ink-soft">{t('status.failed')}</span>
               <Badge tone="red">{d.todayCounts.failed}</Badge>
             </div>
             <div className="border-t border-line-soft pt-4">
-              <p className="text-xs uppercase tracking-wide text-ink-muted">All-time collected</p>
+              <p className="text-xs uppercase tracking-wide text-ink-muted">{t('dashboard.allTimeCollected')}</p>
               <p className="mt-1 text-lg font-semibold text-ink">{money(d.totalCollectedAllTime)}</p>
             </div>
           </CardBody>
@@ -153,10 +161,10 @@ export default function DashboardPage() {
 
       <Card>
         <CardHeader
-          title="Top villages by balance"
+          title={t('dashboard.topVillages')}
           action={
             <Link href="/reports/village-wise" className="inline-flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700">
-              All villages <ArrowRight size={13} />
+              {t('common.allVillages')} <ArrowRight size={13} />
             </Link>
           }
         />
@@ -177,16 +185,16 @@ export default function DashboardPage() {
                   </div>
                   <p className="mt-3 text-lg font-semibold text-ink">{money(v.currentBalance)}</p>
                   <p className="mt-1 text-xs text-ink-muted">
-                    {v.customers} customers · {v.accounts} accounts
+                    {t('dashboard.villageCounts', { customers: v.customers, accounts: v.accounts })}
                   </p>
                   <p className="mt-1 text-xs text-emerald-600">
-                    Collected {inr(v.collected.paise)}
+                    {t('dashboard.villageCollected', { amount: inr(v.collected.paise) })}
                   </p>
                 </Link>
               ))}
             </div>
           ) : (
-            <EmptyState title="No villages yet" />
+            <EmptyState title={t('dashboard.noVillages')} />
           )}
         </CardBody>
       </Card>

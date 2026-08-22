@@ -6,6 +6,7 @@ import { ArrowRight, Banknote, CheckCircle2, HandCoins, Hourglass } from 'lucide
 import { useVillages, useWithdrawals, useWithdrawalsPendingCount } from '@/lib/hooks';
 import { useDebounce } from '@/lib/useDebounce';
 import { money, relativeTime } from '@/lib/format';
+import { useT } from '@/lib/i18n';
 import { WithdrawalKindBadge, WithdrawalStatusBadge } from '@/components/WithdrawalBadges';
 import {
   PageHeader,
@@ -34,7 +35,15 @@ import {
 const STATUSES = ['pending', 'approved', 'paid', 'rejected', 'cancelled'] as const;
 const KINDS = ['partial', 'closure', 'maturity'] as const;
 
+/** Kind labels live under hand-cased keys, so map rather than compose. */
+const KIND_KEY = {
+  partial: 'withdrawals.kindPartialShort',
+  closure: 'withdrawals.kindClosureShort',
+  maturity: 'withdrawals.kindMaturityShort',
+} as const;
+
 export default function WithdrawalsPage() {
+  const t = useT();
   // Default to the work that needs a human: the approval queue.
   const [status, setStatus] = useState<string>('pending');
   const [kind, setKind] = useState('');
@@ -67,31 +76,31 @@ export default function WithdrawalsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Withdrawals"
-        subtitle="Maker-checker approvals. A request only moves money when an approver records the payout."
+        title={t('withdrawals.title')}
+        subtitle={t('withdrawals.subtitle')}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
-          label="Pending approval"
+          label={t('withdrawals.statPendingApproval')}
           value={pending.data?.pending ?? '—'}
           icon={<Hourglass size={20} />}
           tone="amber"
-          hint="Waiting on an admin decision"
+          hint={t('withdrawals.hintPendingApproval')}
         />
         <StatCard
-          label="Awaiting payout"
+          label={t('withdrawals.statAwaitingPayout')}
           value={awaitingPayout.data?.total ?? '—'}
           icon={<HandCoins size={20} />}
           tone="indigo"
-          hint="Approved — money not yet handed over"
+          hint={t('withdrawals.hintAwaitingPayout')}
         />
         <StatCard
-          label="Paid all time"
+          label={t('withdrawals.statPaidAllTime')}
           value={paid.data?.total ?? '—'}
           icon={<CheckCircle2 size={20} />}
           tone="green"
-          hint="Completed payouts"
+          hint={t('withdrawals.hintPaidAllTime')}
         />
       </div>
 
@@ -99,37 +108,42 @@ export default function WithdrawalsPage() {
         <CardHeader
           title={
             <span className="inline-flex items-center gap-2">
-              <Banknote size={16} className="text-brand-600 dark:text-brand-300" /> Requests
+              <Banknote size={16} className="text-brand-600 dark:text-brand-300" />{' '}
+              {t('withdrawals.requests')}
             </span>
           }
-          subtitle="Newest first."
-          action={list.data ? <Badge tone="slate">{list.data.total} total</Badge> : null}
+          subtitle={t('withdrawals.newestFirst')}
+          action={
+            list.data ? (
+              <Badge tone="slate">{t('withdrawals.totalCount', { count: list.data.total })}</Badge>
+            ) : null
+          }
         />
         <CardBody className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
-            <Field label="Status" className="w-44">
+            <Field label={t('common.status')} className="w-44">
               <Select value={status} onChange={(e) => reset(() => setStatus(e.target.value))}>
-                <option value="">All statuses</option>
+                <option value="">{t('common.allStatuses')}</option>
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
-                    {s[0].toUpperCase() + s.slice(1)}
+                    {t(`status.${s}`)}
                   </option>
                 ))}
               </Select>
             </Field>
-            <Field label="Type" className="w-40">
+            <Field label={t('common.type')} className="w-40">
               <Select value={kind} onChange={(e) => reset(() => setKind(e.target.value))}>
-                <option value="">All types</option>
+                <option value="">{t('withdrawals.allTypes')}</option>
                 {KINDS.map((k) => (
                   <option key={k} value={k}>
-                    {k[0].toUpperCase() + k.slice(1)}
+                    {t(KIND_KEY[k])}
                   </option>
                 ))}
               </Select>
             </Field>
-            <Field label="Village" className="w-52">
+            <Field label={t('common.village')} className="w-52">
               <Select value={villageId} onChange={(e) => reset(() => setVillageId(e.target.value))}>
-                <option value="">All villages</option>
+                <option value="">{t('common.allVillages')}</option>
                 {villages.data?.map((v) => (
                   <option key={v.id} value={v.id}>
                     {v.name}
@@ -137,11 +151,11 @@ export default function WithdrawalsPage() {
                 ))}
               </Select>
             </Field>
-            <Field label="Search" className="min-w-[16rem] flex-1">
+            <Field label={t('common.search')} className="min-w-[16rem] flex-1">
               <Input
                 value={search}
                 onChange={(e) => reset(() => setSearch(e.target.value))}
-                placeholder="Name, mobile or account number…"
+                placeholder={t('withdrawals.searchPlaceholder')}
               />
             </Field>
           </div>
@@ -155,13 +169,13 @@ export default function WithdrawalsPage() {
               <Table>
                 <Thead>
                   <tr>
-                    <Th>Requested</Th>
-                    <Th>Customer</Th>
-                    <Th>Account</Th>
-                    <Th>Type</Th>
-                    <Th className="text-right">Net payable</Th>
-                    <Th>Status</Th>
-                    <Th className="text-right">Review</Th>
+                    <Th>{t('withdrawals.colRequested')}</Th>
+                    <Th>{t('common.customer')}</Th>
+                    <Th>{t('common.account')}</Th>
+                    <Th>{t('common.type')}</Th>
+                    <Th className="text-right">{t('withdrawals.colNetPayable')}</Th>
+                    <Th>{t('common.status')}</Th>
+                    <Th className="text-right">{t('withdrawals.colReview')}</Th>
                   </tr>
                 </Thead>
                 <Tbody>
@@ -184,7 +198,7 @@ export default function WithdrawalsPage() {
                           {w.accountNumber}
                         </Link>
                         <div className="text-xs text-ink-muted">
-                          balance {money(w.accountBalance)}
+                          {t('withdrawals.rowBalance', { amount: money(w.accountBalance) })}
                         </div>
                       </Td>
                       <Td>
@@ -195,8 +209,10 @@ export default function WithdrawalsPage() {
                         {(w.penalty.paise > 0 || w.interest.paise > 0) && (
                           <div className="text-xs text-ink-muted">
                             {money(w.amount)}
-                            {w.interest.paise > 0 && ` + ${money(w.interest)} int`}
-                            {w.penalty.paise > 0 && ` − ${money(w.penalty)} penalty`}
+                            {w.interest.paise > 0 &&
+                              ` ${t('withdrawals.rowInterest', { amount: money(w.interest) })}`}
+                            {w.penalty.paise > 0 &&
+                              ` ${t('withdrawals.rowPenalty', { amount: money(w.penalty) })}`}
                           </div>
                         )}
                       </Td>
@@ -206,7 +222,7 @@ export default function WithdrawalsPage() {
                       <Td className="text-right">
                         <Link href={`/withdrawals/${w.id}`}>
                           <Button size="sm" variant="ghost">
-                            Open <ArrowRight size={14} />
+                            {t('common.open')} <ArrowRight size={14} />
                           </Button>
                         </Link>
                       </Td>
@@ -219,8 +235,8 @@ export default function WithdrawalsPage() {
             <EmptyState
               title={
                 status === 'pending'
-                  ? 'Nothing waiting for approval 🎉'
-                  : 'No withdrawal requests match these filters'
+                  ? t('withdrawals.emptyPending')
+                  : t('withdrawals.emptyFiltered')
               }
               icon={<HandCoins size={22} />}
             />

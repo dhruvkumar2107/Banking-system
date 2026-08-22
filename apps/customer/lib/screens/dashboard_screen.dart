@@ -135,6 +135,12 @@ class _Content extends StatelessWidget {
               onTap: () => context.go(Routes.history),
             ),
             _QuickAction(
+              icon: Icons.request_quote_rounded,
+              label: s.t('loans'),
+              gradient: const <Color>[PigmeeColors.amber, Color(0xFFFBBF24)],
+              onTap: () => context.push(Routes.loans),
+            ),
+            _QuickAction(
               icon: Icons.help_outline_rounded,
               label: s.t('helpSupport'),
               gradient: const <Color>[PigmeeColors.emerald, Color(0xFF34D399)],
@@ -268,34 +274,40 @@ class _KycBanner extends StatelessWidget {
     final AppStrings s = AppStrings.of(context);
     final bool rejected = status == 'rejected';
     final Color color = rejected ? PigmeeColors.rose : PigmeeColors.amber;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        children: <Widget>[
-          Icon(rejected ? Icons.error_rounded : Icons.info_rounded, color: color),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  s.t(rejected ? 'kycRejected' : 'kycPending'),
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  s.t('completeKycBody'),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
+    return InkWell(
+      // The banner is the shortest route to the KYC screen from the home tab.
+      onTap: () => context.push(Routes.kyc),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          children: <Widget>[
+            Icon(rejected ? Icons.error_rounded : Icons.info_rounded, color: color),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text(
+                    s.t(rejected ? 'kycRejected' : 'kycPending'),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    s.t('completeKycBody'),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+            Icon(Icons.chevron_right_rounded, color: color),
+          ],
+        ),
       ),
     );
   }

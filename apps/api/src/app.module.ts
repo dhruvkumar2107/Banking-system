@@ -11,8 +11,10 @@ import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { VillagesModule } from './modules/villages/villages.module';
 import { CustomersModule } from './modules/customers/customers.module';
+import { KycModule } from './modules/kyc/kyc.module';
 import { PigmyModule } from './modules/pigmy/pigmy.module';
 import { LedgerModule } from './modules/ledger/ledger.module';
+import { LoansModule } from './modules/loans/loans.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { WithdrawalsModule } from './modules/withdrawals/withdrawals.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
@@ -23,13 +25,14 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
+import { KycVerifiedGuard } from './modules/kyc/kyc.guard';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 /**
  * Root module. Global cross-cutting modules (config, database, audit) are
- * registered first, followed by the feature modules. Three global guards run in
- * order on every request: throttler → JWT auth → RBAC. A single exception filter
- * shapes all error responses.
+ * registered first, followed by the feature modules. Four global guards run in
+ * order on every request: throttler → JWT auth → RBAC → KYC gate. A single
+ * exception filter shapes all error responses.
  */
 @Module({
   imports: [
@@ -59,8 +62,10 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     AuthModule,
     VillagesModule,
     CustomersModule,
+    KycModule,
     PigmyModule,
     LedgerModule,
+    LoansModule,
     PaymentsModule,
     WithdrawalsModule,
     NotificationsModule,
@@ -70,10 +75,13 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     UploadsModule,
   ],
   providers: [
-    // Order matters: throttle first, then authenticate, then authorize.
+    // Order matters: throttle first, then authenticate, then authorize, and only
+    // then check the KYC gate — it needs req.user, and a caller who fails RBAC
+    // should be told that rather than being asked to finish their KYC.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    { provide: APP_GUARD, useClass: KycVerifiedGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],
 })

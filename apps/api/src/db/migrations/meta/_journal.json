@@ -15,6 +15,13 @@
       "when": 1787288990694,
       "tag": "0001_add_withdrawals_and_scheme",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787364667539,
+      "tag": "0002_curved_masque",
+      "breakpoints": true
     }
   ]
 }

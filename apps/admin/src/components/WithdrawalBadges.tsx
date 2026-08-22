@@ -1,4 +1,7 @@
+'use client';
+
 import { Badge } from '@/components/ui';
+import { useT, type TKey } from '@/lib/i18n';
 import type { PayoutMethod, WithdrawalKind, WithdrawalStatus } from '@/lib/types';
 
 /**
@@ -9,18 +12,51 @@ import type { PayoutMethod, WithdrawalKind, WithdrawalStatus } from '@/lib/types
 
 type Tone = 'green' | 'amber' | 'red' | 'blue' | 'slate' | 'indigo';
 
-const STATUS: Record<WithdrawalStatus, { tone: Tone; long: string; short: string }> = {
-  pending: { tone: 'amber', long: 'Pending approval', short: 'Pending' },
-  approved: { tone: 'blue', long: 'Approved — awaiting payout', short: 'Approved' },
-  paid: { tone: 'green', long: 'Paid', short: 'Paid' },
-  rejected: { tone: 'red', long: 'Rejected', short: 'Rejected' },
-  cancelled: { tone: 'slate', long: 'Cancelled by customer', short: 'Cancelled' },
+/**
+ * The maps hold dictionary keys, not English: `long` is the detail-page pill,
+ * `short` the one that has to fit in a list cell. Where both read the same in
+ * English they share a key.
+ */
+const STATUS: Record<WithdrawalStatus, { tone: Tone; long: TKey; short: TKey }> = {
+  pending: {
+    tone: 'amber',
+    long: 'withdrawals.statusPendingLong',
+    short: 'withdrawals.statusPendingShort',
+  },
+  approved: {
+    tone: 'blue',
+    long: 'withdrawals.statusApprovedLong',
+    short: 'withdrawals.statusApprovedShort',
+  },
+  paid: { tone: 'green', long: 'withdrawals.statusPaid', short: 'withdrawals.statusPaid' },
+  rejected: {
+    tone: 'red',
+    long: 'withdrawals.statusRejected',
+    short: 'withdrawals.statusRejected',
+  },
+  cancelled: {
+    tone: 'slate',
+    long: 'withdrawals.statusCancelledLong',
+    short: 'withdrawals.statusCancelledShort',
+  },
 };
 
-const KIND: Record<WithdrawalKind, { tone: Tone; long: string; short: string }> = {
-  partial: { tone: 'blue', long: 'Partial withdrawal', short: 'Partial' },
-  closure: { tone: 'indigo', long: 'Account closure', short: 'Closure' },
-  maturity: { tone: 'green', long: 'Maturity payout', short: 'Maturity' },
+const KIND: Record<WithdrawalKind, { tone: Tone; long: TKey; short: TKey }> = {
+  partial: {
+    tone: 'blue',
+    long: 'withdrawals.kindPartialLong',
+    short: 'withdrawals.kindPartialShort',
+  },
+  closure: {
+    tone: 'indigo',
+    long: 'withdrawals.kindClosureLong',
+    short: 'withdrawals.kindClosureShort',
+  },
+  maturity: {
+    tone: 'green',
+    long: 'withdrawals.kindMaturityLong',
+    short: 'withdrawals.kindMaturityShort',
+  },
 };
 
 const DOT: Record<Tone, string> = {
@@ -39,11 +75,14 @@ export function WithdrawalStatusBadge({
   status: WithdrawalStatus;
   compact?: boolean;
 }) {
+  const t = useT();
+  // A status outside the union falls through to the raw value: `t()` returns an
+  // unknown key unchanged, which is the same fallback this badge always had.
   const s = STATUS[status] ?? { tone: 'slate' as Tone, long: status, short: status };
   return (
     <Badge tone={s.tone}>
       <span className={`h-1.5 w-1.5 rounded-full ${DOT[s.tone]}`} />
-      {compact ? s.short : s.long}
+      {t(compact ? s.short : s.long)}
     </Badge>
   );
 }
@@ -55,9 +94,17 @@ export function WithdrawalKindBadge({
   kind: WithdrawalKind;
   compact?: boolean;
 }) {
+  const t = useT();
   const k = KIND[kind] ?? { tone: 'slate' as Tone, long: kind, short: kind };
-  return <Badge tone={k.tone}>{compact ? k.short : k.long}</Badge>;
+  return <Badge tone={k.tone}>{t(compact ? k.short : k.long)}</Badge>;
 }
+
+/**
+ * The three helpers below are plain functions, so they cannot reach the `useT`
+ * hook. `withdrawals/[id]/page.tsx` — their only ever caller — now derives these
+ * labels from the dictionary itself (`withdrawals.payout*` / `withdrawals.ref*`),
+ * so nothing imports them any more. Left in place rather than deleted.
+ */
 
 /** How the money reaches the customer. */
 export function payoutLabel(method: PayoutMethod): string {

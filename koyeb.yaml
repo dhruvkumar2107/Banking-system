@@ -1,0 +1,58 @@
+# Koyeb deployment config for Digital Pigmee API
+# Usage:
+# 1. Create Neon DB at https://neon.tech (copy connection string)
+# 2. Push this repo to GitHub
+# 3. In Koyeb: Create App → GitHub → Select repo → Builder: Dockerfile → Dockerfile: apps/api/Dockerfile
+# 4. Add env vars below in Koyeb dashboard
+# 5. Deploy → Run seed in Console: npm run seed
+
+name: pigmee-api
+git:
+  branch: main
+  repo: your-github-username/digital-pigmee  # CHANGE THIS
+builder: dockerfile
+dockerfile: apps/api/Dockerfile
+ports:
+  - port: 4000
+    protocol: http
+    expose: true
+env:
+  - name: NODE_ENV
+    value: production
+  - name: PORT
+    value: "4000"
+  - name: API_BASE_URL
+    value: https://pigmee-api-<your-org>.koyeb.app  # CHANGE AFTER DEPLOY
+  - name: DATABASE_URL
+    value: postgres://user:pass@ep-xxx.us-east-1.aws.neon.tech/pigmee?sslmode=require  # REPLACE WITH NEON URL
+  - name: JWT_ACCESS_SECRET
+    value: NRPy2wgBSFISM44TTyh3uEZmGeRFyb+Eu80I9+1N+Hc=
+  - name: JWT_REFRESH_SECRET
+    value: E6v2sD2dg5d5WWFLXmoVHKSfEiE5YPmNCKUbH6fgcWw=
+  - name: OTP_DEV_ECHO
+    value: "false"
+  - name: SMS_PROVIDER
+    value: console
+  - name: PAYMENTS_MODE
+    value: mock
+  - name: CORS_ORIGINS
+    value: https://your-admin.vercel.app,https://your-customer.vercel.app  # CHANGE
+  - name: SEED_SUPERADMIN_EMAIL
+    value: admin@yourdomain.com  # CHANGE
+  - name: SEED_SUPERADMIN_PASSWORD
+    value: CHANGE_ME_STRONG_PASSWORD  # CHANGE
+  - name: RAZORPAY_KEY_ID
+    value: ""
+  - name: RAZORPAY_KEY_SECRET
+    value: ""
+  - name: RAZORPAY_WEBHOOK_SECRET
+    value: 00032b30444a41d8536993d136bd5c1f1ed8715ad50d3aacd268bb032efa49f6
+  - name: UPLOAD_DIR
+    value: storage/uploads
+  - name: UPLOAD_MAX_BYTES
+    value: "5242880"
+regions:
+  - was  # Washington DC (free tier)
+instance_type: free
+min_instances: 1
+max_instances: 1

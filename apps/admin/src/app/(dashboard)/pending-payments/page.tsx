@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Clock } from 'lucide-react';
 import { usePendingPayments, useVillages } from '@/lib/hooks';
+import { useT } from '@/lib/i18n';
 import {
   PageHeader,
   Card,
@@ -22,30 +23,33 @@ export default function PendingPaymentsPage() {
 
   const villages = useVillages();
   const pending = usePendingPayments({ villageId: villageId || undefined, page, limit });
+  const t = useT();
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Pending Payments"
-        subtitle="Payments awaiting confirmation or settlement."
+        title={t('pendingPayments.title')}
+        subtitle={t('pendingPayments.subtitle')}
       />
 
       <Card>
         <CardHeader
           title={
             <span className="inline-flex items-center gap-2">
-              <Clock size={16} className="text-amber-500" /> Awaiting settlement
+              <Clock size={16} className="text-amber-500" /> {t('pendingPayments.awaitingSettlement')}
             </span>
           }
           action={
-            pending.data ? <Badge tone="amber">{pending.data.total} pending</Badge> : null
+            pending.data ? (
+              <Badge tone="amber">{t('pendingPayments.pendingCount', { count: pending.data.total })}</Badge>
+            ) : null
           }
         />
         <CardBody className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
-            <Field label="Village" className="w-56">
+            <Field label={t('common.village')} className="w-56">
               <Select value={villageId} onChange={(e) => { setVillageId(e.target.value); setPage(1); }}>
-                <option value="">All villages</option>
+                <option value="">{t('common.allVillages')}</option>
                 {villages.data?.map((v) => (
                   <option key={v.id} value={v.id}>{v.name}</option>
                 ))}
@@ -57,7 +61,7 @@ export default function PendingPaymentsPage() {
             rows={pending.data?.data}
             loading={pending.isLoading}
             error={pending.isError}
-            emptyLabel="No pending payments — all settled 🎉"
+            emptyLabel={t('pendingPayments.empty')}
           />
 
           {pending.data && (

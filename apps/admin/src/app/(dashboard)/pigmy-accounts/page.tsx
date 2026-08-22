@@ -6,6 +6,7 @@ import { Search, PiggyBank } from 'lucide-react';
 import { usePigmyAccounts } from '@/lib/hooks';
 import { useDebounce } from '@/lib/useDebounce';
 import { money } from '@/lib/format';
+import { useT } from '@/lib/i18n';
 import {
   PageHeader,
   Card,
@@ -27,7 +28,11 @@ import {
   Td,
 } from '@/components/ui';
 
+/** Labels come from the shared `status.*` keys via a composed lookup. */
+const STATUSES = ['active', 'inactive', 'closed'] as const;
+
 export default function PigmyAccountsPage() {
+  const t = useT();
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
@@ -44,36 +49,36 @@ export default function PigmyAccountsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Pigmy Accounts"
-        subtitle="All daily micro-savings accounts across villages."
+        title={t('accounts.title')}
+        subtitle={t('accounts.subtitle')}
       />
 
       <Card>
         <CardBody className="space-y-4">
           <div className="flex flex-wrap items-end gap-3">
-            <Field label="Search" className="min-w-[220px] flex-1">
+            <Field label={t('common.search')} className="min-w-[220px] flex-1">
               <div className="relative">
                 <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-faint" />
                 <Input
                   className="pl-9"
-                  placeholder="Account number, name, mobile…"
+                  placeholder={t('accounts.searchPlaceholder')}
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 />
               </div>
             </Field>
-            <Field label="Status" className="w-44">
+            <Field label={t('common.status')} className="w-44">
               <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
-                <option value="">All statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="closed">Closed</option>
+                <option value="">{t('common.allStatuses')}</option>
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>{t(`status.${s}`)}</option>
+                ))}
               </Select>
             </Field>
           </div>
 
           {accounts.isError ? (
-            <ErrorState message="Could not load accounts." />
+            <ErrorState message={t('accounts.loadError')} />
           ) : accounts.isLoading ? (
             <LoadingBlock />
           ) : accounts.data && accounts.data.data.length ? (
@@ -82,13 +87,13 @@ export default function PigmyAccountsPage() {
                 <Table>
                   <Thead>
                     <Tr>
-                      <Th>Account</Th>
-                      <Th>Customer</Th>
-                      <Th>Village</Th>
-                      <Th>Daily</Th>
-                      <Th>Balance</Th>
-                      <Th>Deposited</Th>
-                      <Th>Status</Th>
+                      <Th>{t('common.account')}</Th>
+                      <Th>{t('common.customer')}</Th>
+                      <Th>{t('common.village')}</Th>
+                      <Th>{t('common.daily')}</Th>
+                      <Th>{t('common.balance')}</Th>
+                      <Th>{t('common.deposited')}</Th>
+                      <Th>{t('common.status')}</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
@@ -118,7 +123,7 @@ export default function PigmyAccountsPage() {
               />
             </>
           ) : (
-            <EmptyState title="No accounts found" icon={<PiggyBank size={22} />} />
+            <EmptyState title={t('accounts.noneFound')} icon={<PiggyBank size={22} />} />
           )}
         </CardBody>
       </Card>
