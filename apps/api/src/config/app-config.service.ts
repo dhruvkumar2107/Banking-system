@@ -35,6 +35,15 @@ export interface AppConfig {
     webhookSecret: string;
     mode: PaymentsMode;
   };
+  /**
+   * Fixed-OTP escape hatch for a hosted demo where no SMS provider is wired.
+   * Mobiles matching `phones` are issued `code` instead of a random OTP and get
+   * it echoed back so the app can prefill it; every other number keeps the
+   * normal random-OTP + SMS path. An entry may be a full 10-digit mobile or a
+   * prefix ending in `*` (e.g. `91000000*`) so freshly registered demo numbers
+   * work too. Empty `code` disables the whole mechanism.
+   */
+  demoOtp: { code: string; phones: string[] };
   security: { corsOrigins: string[]; throttleTtl: number; throttleLimit: number };
   uploads: { dir: string; maxBytes: number };
   reminders: { enabled: boolean; cron: string; missedDaysThreshold: number };
@@ -48,6 +57,23 @@ const num = (v: string | undefined, fallback: number): number => {
 };
 const bool = (v: string | undefined, fallback: boolean): boolean =>
   v === undefined ? fallback : ['1', 'true', 'yes', 'on'].includes(v.toLowerCase());
+
+/**
+ * Minimum leading digits a `DEMO_OTP_PHONES` wildcard must carry. Stops `9*`
+ * from quietly turning the fixed demo OTP into a login for every Indian mobile.
+ */
+export const DEMO_PHONE_MIN_PREFIX = 6;
+
+/**
+ * Does a normalised mobile (digits only, last 10 — see `normalizeMobile`) match
+ * one of the `DEMO_OTP_PHONES` entries? An entry is either the full 10-digit
+ * number or a prefix ending in `*`.
+ */
+export function matchesDemoPhone(mobile: string, patterns: string[]): boolean {
+  return patterns.some((p) =>
+    p.endsWith('*') ? mobile.startsWith(p.slice(0, -1)) : mobile === p,
+  );
+}
 
 /**
  * Typed access to environment configuration. Parsed once at construction.
@@ -67,6 +93,15 @@ export class AppConfigService {
     const mode: PaymentsMode = keyId && keySecret && requestedMode === 'live' ? 'live' : 'mock';
 
     const smsProvider = (process.env.SMS_PROVIDER ?? 'console').toLowerCase() as SmsProvider;
+
+    // Demo fixed-OTP allow-list. Mobiles are compared after normalisation
+    // (digits only, last 10), so strip everything except digits and the `*`
+    // prefix marker here.
+    const demoOtpCode = (process.env.DEMO_OTP ?? '').replace(/\D/g, '');
+    const demoOtpPhones = (process.env.DEMO_OTP_PHONES ?? '')
+      .split(',')
+      .map((s) => s.replace(/[^\d*]/g, '').trim())
+      .filter(Boolean);
 
     this.config = {
       env,
@@ -110,6 +145,10 @@ export class AppConfigService {
         keySecret,
         webhookSecret: process.env.RAZORPAY_WEBHOOK_SECRET ?? 'dev_webhook_secret_change_me',
         mode,
+      },
+      demoOtp: {
+        code: demoOtpCode,
+        phones: demoOtpPhones,
       },
       security: {
         corsOrigins: (process.env.CORS_ORIGINS ?? 'http://localhost:3000')
@@ -215,6 +254,34 @@ export class AppConfigService {
     // documented demo password must not survive into a real deploy.
     if (c.seed.onBoot && c.seed.password === 'Admin@12345') {
       fatal.push('SEED_ON_BOOT is on with the default SEED_SUPERADMIN_PASSWORD — set a strong one.');
+    }
+
+    // A fixed demo OTP is a deliberate DEMO_MODE convenience for a deploy with
+    // no SMS provider. It must stay scoped to an explicit allow-list: unscoped,
+    // it would hand a working login to every mobile on the platform.
+    if (c.demoOtp.code) {
+      if (c.demoOtp.phones.length === 0) {
+        fatal.push(
+          'DEMO_OTP is set but DEMO_OTP_PHONES is empty — every mobile would accept the fixed code.',
+        );
+      }
+      const malformed = c.demoOtp.phones.filter((p) =>
+        p.endsWith('*') ? p.slice(0, -1).length < DEMO_PHONE_MIN_PREFIX : p.length !== 10,
+      );
+      if (malformed.length > 0) {
+        fatal.push(
+          `DEMO_OTP_PHONES has ${malformed.length} bad entr${malformed.length === 1 ? 'y' : 'ies'} (${malformed.join(', ')}) — ` +
+            `use a full 10-digit mobile, or a prefix with at least ${DEMO_PHONE_MIN_PREFIX} digits before the \`*\`.`,
+        );
+      }
+      if (c.demoOtp.code.length !== c.otp.length) {
+        fatal.push(
+          `DEMO_OTP is ${c.demoOtp.code.length} digits but OTP_LENGTH is ${c.otp.length} — the fixed code could never verify.`,
+        );
+      }
+      demoable(
+        `A fixed demo OTP is active for ${c.demoOtp.phones.length} mobile pattern(s) — those accounts are open to anyone who knows the code.`,
+      );
     }
 
     return { fatal, warnings };

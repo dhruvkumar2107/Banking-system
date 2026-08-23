@@ -1,5 +1,9 @@
 # Deployment
 
+> **Just want it online for free?** `docs/DEPLOY-FREE.md` is the ~20 minute path:
+> Render (API) + Neon (Postgres) + Vercel (admin + customer web), no card needed.
+> This document is the full reference behind it.
+
 How to deploy the three tiers of Digital Pigmee. The stack is intentionally
 portable: the API is a standard Node process, the admin panel is a standard
 Next.js app, and the customer app builds to an Android APK/AAB or a static web
@@ -94,6 +98,7 @@ Copy `.env.example` and replace **every** dev-labelled secret:
 | `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`        | **Long random values** — rotate on leak      |
 | `JWT_ACCESS_TTL`, `JWT_REFRESH_TTL`              | Defaults 15m / 14d                           |
 | `OTP_TTL`, `OTP_MAX_PER_HOUR`, `OTP_DEV_ECHO=false` | **Disable dev echo in prod**              |
+| `DEMO_OTP`, `DEMO_OTP_PHONES`                    | Fixed OTP for allow-listed demo mobiles only — see below |
 | `SMS_PROVIDER`                                   | Wire a real provider (only `console` shipped)|
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`         | Live keys                                    |
 | `RAZORPAY_WEBHOOK_SECRET`                        | Must match the Razorpay dashboard webhook    |
@@ -101,6 +106,29 @@ Copy `.env.example` and replace **every** dev-labelled secret:
 | `CORS_ORIGINS`                                   | Admin + app origins, comma-separated         |
 | `THROTTLE_TTL`, `THROTTLE_LIMIT`                 | Rate limiting                                |
 | `SEED_SUPERADMIN_EMAIL/PASSWORD`                 | Change before first seed                     |
+
+### Demo login without an SMS provider
+
+A hosted demo has no SMS provider, so nobody can receive an OTP. `DEMO_OTP` plus
+`DEMO_OTP_PHONES` covers that: mobiles matching the allow-list are issued the
+fixed code instead of a random one, and receive it in the response so the customer
+app prefills it. Every other number keeps the normal random-OTP + SMS path, so
+this is not a global backdoor.
+
+```
+DEMO_OTP=424242
+DEMO_OTP_PHONES=9100000000,91000000*
+```
+
+An entry is a full 10-digit mobile, or a prefix ending in `*` carrying at least
+6 leading digits. `91000000*` covers the 12 seeded demo customers
+(`9100000000`–`9100000011`) and any demo customer registered on that prefix
+later. Verification, expiry, attempt counting and rate limiting are the same code
+path as a real OTP — only the code's *source* differs.
+
+This is strictly a `DEMO_MODE` feature. Under `NODE_ENV=production` with
+`DEMO_MODE=false` the API refuses to boot while `DEMO_OTP` is set, so it cannot
+follow you into go-live.
 
 ### Razorpay webhook
 
@@ -135,6 +163,9 @@ OTP secrecy. These still refuse to boot in demo mode:
 | `DATABASE_URL` unset | Falls back to PGlite, wiped on every redeploy |
 | `SMS_PROVIDER=msg91`/`twilio` with missing creds | A real provider chosen but misconfigured |
 | `SEED_ON_BOOT=true` with the default seed password | Known credentials on a public URL |
+| `DEMO_OTP` set without `DEMO_MODE=true` | A fixed login code on a real deployment |
+| `DEMO_OTP` set with an empty `DEMO_OTP_PHONES` | Every mobile would accept the fixed code |
+| A `DEMO_OTP_PHONES` wildcard with fewer than 6 leading digits | `9*` would cover every Indian mobile |
 
 > Do **not** work around the guard with `NODE_ENV=staging`. That also disables
 > the production CORS allow-list (every origin accepted) and defaults OTP echo

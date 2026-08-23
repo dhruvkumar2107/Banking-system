@@ -105,5 +105,6 @@ Copy `.env.docker.example` to `.env` to change ports, URLs, or secrets. See
 - `apps/api/README.md` — API modules, endpoints, ledger design, security model
 - `apps/admin/README.md` — admin panel pages & configuration
 - `apps/customer/README.md` — Flutter app screens & build
-- `docs/DEPLOYMENT.md` — deployment (Docker Compose, or Railway/Render/Vercel + managed Postgres)
+- **`docs/DEPLOY-FREE.md` — deploy all three tiers on free plans in ~20 minutes (Render + Neon + Vercel)**
+- `docs/DEPLOYMENT.md` — full deployment reference (Docker Compose, or Railway/Render/Vercel + managed Postgres)
 - `docs/SECURITY.md` — the security requirements and how each is met

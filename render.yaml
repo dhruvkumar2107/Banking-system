@@ -4,7 +4,7 @@
 # Deploy:
 #   1. Push this file to GitHub on `main`.
 #   2. Render dashboard → New → Blueprint → pick this repo → Apply.
-#   3. Render prompts for every var marked `sync: false` (see docs/DEPLOY.md).
+#   3. Render prompts for every var marked `sync: false` (see docs/DEPLOY-FREE.md).
 #   4. First boot applies migrations automatically; SEED_ON_BOOT creates the
 #      superadmin (free tier has no shell, so `npm run seed` is not an option).
 #
@@ -79,6 +79,29 @@ services:
       #   e.g. https://pigmee-admin.vercel.app,https://pigmee-customer.vercel.app
       - key: CORS_ORIGINS
         sync: false
+
+      # ── Demo login (no SMS provider wired) ─────────────────────────────────
+      # The mobiles matching DEMO_OTP_PHONES are issued this fixed code instead
+      # of a random OTP, and receive it in the response so the app prefills it.
+      # Every other number keeps the normal random-OTP + SMS path, so this is not
+      # an open door. Committing the code is deliberate: it only ever unlocks
+      # seeded demo accounts holding mock money, and it is meant to be handed to
+      # whoever runs the demo.
+      #
+      # Boot REFUSES if: DEMO_MODE is not true, the allow-list is empty, a
+      # wildcard carries fewer than 6 leading digits, or the length cannot match
+      # OTP_LENGTH. So this cannot survive into a real go-live — turning off
+      # DEMO_MODE forces you to remove it.
+      #
+      # `91000000*` covers the 12 seeded customers (9100000000..9100000011) and
+      # any demo customer registered later on that prefix.
+      - key: DEMO_OTP
+        value: "424242"
+      - key: DEMO_OTP_PHONES
+        value: "91000000*"
+      # A demo logs in and out far more than a real user; 5/hour locks it up.
+      - key: OTP_MAX_PER_HOUR
+        value: "50"
 
       # ── First-boot seed ────────────────────────────────────────────────────
       # Idempotent, and started after the port opens so it cannot fail the

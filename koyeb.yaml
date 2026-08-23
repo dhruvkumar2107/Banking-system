@@ -1,6 +1,6 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # Koyeb deployment config for the Digital Pigmee API.
-# Render is the primary target (see render.yaml + docs/DEPLOY.md); this is the
+# Render is the primary target (see render.yaml + docs/DEPLOY-FREE.md); this is the
 # equivalent for Koyeb.
 #
 # 1. Create a Postgres (Neon or Render) and copy the connection string.
@@ -63,6 +63,15 @@ env:
     value: ""
   - name: RAZORPAY_KEY_SECRET
     value: ""
+
+  # Fixed demo OTP for the seeded demo mobiles only (see render.yaml for the
+  # full rationale and the guards that stop it reaching a real deployment).
+  - name: DEMO_OTP
+    value: "424242"
+  - name: DEMO_OTP_PHONES
+    value: "91000000*"
+  - name: OTP_MAX_PER_HOUR
+    value: "50"
 
   # Must include the deployed admin origin or every browser call fails CORS.
   - name: CORS_ORIGINS

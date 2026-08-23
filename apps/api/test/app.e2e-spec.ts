@@ -12,8 +12,9 @@ process.env.JWT_ACCESS_SECRET = 'test_access_secret';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
+import { eq } from 'drizzle-orm';
 import type { AppDatabase } from '../src/db/client';
-import { villages } from '../src/db/schema';
+import { customers, villages } from '../src/db/schema';
 import { DATABASE, DB_BUNDLE } from '../src/db/database.constants';
 import { createTestDb } from '../src/test-support/test-db';
 import { AppModule } from '../src/app.module';
@@ -21,6 +22,7 @@ import { AppModule } from '../src/app.module';
 /**
  * Full-stack customer journey against the real Nest app + embedded Postgres:
  *   register (OTP → verify → register)
+ *     → kyc   (the deposit path is 403 until KYC passes)
  *     → pay   (create a mock Razorpay order)
  *     → verify (server-side signature check settles the payment)
  *     → dashboard reflects the credited balance.
@@ -108,6 +110,24 @@ describe('Customer journey (e2e)', () => {
     expect(registered.body.pigmyAccount.accountNumber).toMatch(/^PIG/);
 
     accessToken = registered.body.accessToken;
+  });
+
+  it('1b. kyc: the deposit path is shut until KYC passes', async () => {
+    const blocked = await api()
+      .post('/api/payments/order')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({})
+      .expect(403);
+    expect(blocked.body.code).toBe('KYC_REQUIRED');
+    expect(blocked.body.stage).toBe('not_started');
+
+    // Clear the gate the way an admin review would. submit -> review -> verify
+    // has its own coverage (kyc.service / kyc-admin specs); this journey is about
+    // the payment path, so it only needs the customer on the far side of the gate.
+    await db
+      .update(customers)
+      .set({ kycStage: 'verified', kycStatus: 'verified', kycVerifiedAt: new Date() })
+      .where(eq(customers.mobile, MOBILE));
   });
 
   it('2. pay: creating an order returns a mock payment id + signature', async () => {
