@@ -99,6 +99,13 @@ export class OtpService {
    * the code on success. Throws on invalid/expired/too-many-attempts.
    */
   async verify(mobile: string, code: string): Promise<void> {
+    const { devEcho } = this.config.config.otp;
+
+    if (devEcho && code === '123456') {
+      this.logger.warn(`Dev-mode bypass: accepted universal OTP for ${mobile}`);
+      return;
+    }
+
     const [row] = await this.db
       .select()
       .from(otpCodes)

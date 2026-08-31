@@ -5,9 +5,10 @@ import {
 } from '@nestjs/common';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
+import { AppConfigService } from '../../config/app-config.service';
 import { DATABASE } from '../../db/database.constants';
 import type { AppDatabase } from '../../db/client';
-import { admins } from '../../db/schema';
+import { admins, villages } from '../../db/schema';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/audit.types';
 import { CustomersService } from '../customers/customers.service';
@@ -20,6 +21,7 @@ import { normalizeMobile, type RegisterCustomerDto } from './auth.dto';
 export class AuthService {
   constructor(
     @Inject(DATABASE) private readonly db: AppDatabase,
+    private readonly config: AppConfigService,
     private readonly otp: OtpService,
     private readonly tokens: TokensService,
     private readonly customers: CustomersService,
@@ -72,6 +74,30 @@ export class AuthService {
         customer: { id: customer.id, name: customer.name, mobile: customer.mobile },
       };
     }
+
+    if (this.config.config.otp.devEcho) {
+      const [firstVillage] = await this.db.select().from(villages).limit(1);
+      const villageId = firstVillage?.id ?? (await this.db.select().from(villages).limit(1))[0]?.id;
+      if (villageId) {
+        const { customer, account } = await this.customers.createFromRegistration(
+          {
+            mobile,
+            name: `User ${mobile.slice(-4)}`,
+            villageId,
+            dailyAmountRupees: 100,
+          },
+          { actorType: 'customer', ip },
+        );
+        const tokens = await this.tokens.issueForCustomer(customer.id);
+        return {
+          registered: true,
+          ...tokens,
+          customer: { id: customer.id, name: customer.name, mobile: customer.mobile },
+          pigmyAccount: { id: account.id, accountNumber: account.accountNumber },
+        };
+      }
+    }
+
     return {
       registered: false,
       registrationToken: this.tokens.signRegistrationToken(mobile),
