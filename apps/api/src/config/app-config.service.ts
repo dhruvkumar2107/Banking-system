@@ -227,9 +227,10 @@ export class AppConfigService {
       fatal.push('JWT_REFRESH_SECRET is still the dev default.');
     }
 
-    // Echoing OTPs hands any caller a login — never allowed in production.
+    // Echoing OTPs hands any caller a login — blocked in production unless
+    // DEMO_MODE=true, in which case it is downgraded to a warning.
     if (c.otp.devEcho) {
-      fatal.push('OTP_DEV_ECHO is on — OTP codes would be returned in API responses.');
+      demoable('OTP_DEV_ECHO is on — OTP codes would be returned in API responses.');
     }
 
     // A demo may log OTPs to the server console, but picking a real provider and

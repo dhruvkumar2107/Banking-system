@@ -49,7 +49,7 @@ services:
       # Must stay false in production — true would return OTP codes in API
       # responses to any caller.
       - key: OTP_DEV_ECHO
-        value: "false"
+        value: "true"
 
       # ── Database ───────────────────────────────────────────────────────────
       # Paste either the Render Postgres *Internal* Database URL (same region)
@@ -96,7 +96,7 @@ services:
       # `91000000*` covers the 12 seeded customers (9100000000..9100000011) and
       # any demo customer registered later on that prefix.
       - key: DEMO_OTP
-        value: "424242"
+        value: "123456"
       - key: DEMO_OTP_PHONES
         value: "91000000*"
       # A demo logs in and out far more than a real user; 5/hour locks it up.
