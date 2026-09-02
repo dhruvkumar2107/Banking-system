@@ -98,7 +98,7 @@ services:
       - key: DEMO_OTP
         value: "123456"
       - key: DEMO_OTP_PHONES
-        value: "91000000*"
+        value: "7004757821"
       # A demo logs in and out far more than a real user; 5/hour locks it up.
       - key: OTP_MAX_PER_HOUR
         value: "50"
