@@ -65,5 +65,20 @@ apps/api/storage/
 # Temporary files
 *.tmp
 
+# Security artifacts — never commit
+login.json
+extracted.txt
+test_login.bat
+
+# Build artifacts
+stopping
+.smoke/
+
+# i18n work files
+apps/admin/.i18n-work/
+
+# Android build
+apps/customer/android/build/
+
 # Claude Code local settings
 .claude/settings.local.json
