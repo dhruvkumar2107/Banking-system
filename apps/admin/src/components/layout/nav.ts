@@ -16,6 +16,9 @@ import {
   Bell,
   FileClock,
   Settings,
+  Activity,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react';
 import type { AdminRole } from '@/lib/types';
 import type { TranslationKey } from '@/lib/i18n/dictionaries';
@@ -80,6 +83,9 @@ export const NAV: NavGroup[] = [
     items: [
       { href: '/notifications', labelKey: 'nav.notifications', icon: Bell, roles: ['superadmin', 'admin'] },
       { href: '/audit-logs', labelKey: 'nav.auditLogs', icon: FileClock, roles: ['superadmin', 'admin'] },
+      { href: '/reconciliation', labelKey: 'nav.reconciliation' as TranslationKey, icon: RefreshCw, roles: ['superadmin', 'admin'] },
+      { href: '/risk', labelKey: 'nav.risk' as TranslationKey, icon: AlertTriangle, roles: ['superadmin', 'admin'] },
+      { href: '/system-health', labelKey: 'nav.systemHealth' as TranslationKey, icon: Activity, roles: ['superadmin'] },
       { href: '/settings', labelKey: 'nav.settings', icon: Settings },
     ],
   },

@@ -21,6 +21,9 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
 import { ReportsModule } from './modules/reports/reports.module';
 import { AdminsModule } from './modules/admins/admins.module';
 import { MeModule } from './modules/me/me.module';
+import { ReconciliationModule } from './modules/reconciliation/reconciliation.module';
+import { RiskModule } from './modules/risk/risk.module';
+import { HealthModule } from './modules/health/health.module';
 
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -71,6 +74,9 @@ import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
     ReportsModule,
     AdminsModule,
     MeModule,
+    ReconciliationModule,
+    RiskModule,
+    HealthModule,
   ],
   providers: [
     // Order matters: throttle first, then authenticate, then authorize, and only

@@ -10,6 +10,7 @@ import '../router/app_router.dart';
 import '../state/data_providers.dart';
 import '../widgets/balance_card.dart';
 import '../widgets/language_toggle.dart';
+import '../widgets/savings_insights_card.dart';
 import '../widgets/state_views.dart';
 import '../widgets/transaction_tile.dart';
 import 'pay_screen.dart';
@@ -105,6 +106,17 @@ class _Content extends StatelessWidget {
           accountNumber: primary?.accountNumber,
           payLabel: s.t('payNow'),
           onPay: onPay,
+        ),
+        const SizedBox(height: 16),
+
+        // Savings insights
+        SavingsInsightsCard(
+          monthlySavings: data.totalBalance,
+          streakDays: data.recentTransactions.length,
+          todayContribution: data.recentTransactions.isNotEmpty
+              ? data.recentTransactions.first.amount
+              : Money.zero,
+          totalDeposited: primary?.totalDeposited ?? Money.zero,
         ),
         const SizedBox(height: 24),
 

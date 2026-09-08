@@ -14,6 +14,10 @@ export interface AuditEntry {
   before?: unknown;
   after?: unknown;
   ip?: string | null;
+  /** Correlation ID for request tracing across services. */
+  correlationId?: string | null;
+  /** Request ID for single-request tracing. */
+  requestId?: string | null;
 }
 
 export interface AuditFilter {
@@ -23,12 +27,17 @@ export interface AuditFilter {
   action?: string;
   from?: Date;
   to?: Date;
+  /** Filter by correlation ID for request tracing. */
+  correlationId?: string;
 }
 
 /**
  * Write-only audit trail. Every sensitive / balance-affecting action records a
  * row here. `record` can run inside an existing DB transaction (pass `tx`) so
  * the audit row commits atomically with the change it describes.
+ *
+ * The audit log is IMMUTABLE to normal application users. Corrections happen
+ * through compensating entries, never by modifying existing audit rows.
  */
 @Injectable()
 export class AuditService {
@@ -78,5 +87,45 @@ export class AuditService {
       this.db.select({ value: count() }).from(auditLogs).where(where),
     ]);
     return { rows, total };
+  }
+
+  /**
+   * Get audit history for a specific entity (e.g., all actions on a customer,
+   * account, or transaction). Returns rows in reverse chronological order.
+   */
+  async forEntity(entity: string, entityId: string, limit = 50) {
+    return this.db
+      .select()
+      .from(auditLogs)
+      .where(and(eq(auditLogs.entity, entity), eq(auditLogs.entityId, entityId)))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(limit);
+  }
+
+  /**
+   * Get audit history for a specific actor (e.g., all actions by an admin or customer).
+   */
+  async forActor(actorId: string, limit = 50) {
+    return this.db
+      .select()
+      .from(auditLogs)
+      .where(eq(auditLogs.actorId, actorId))
+      .orderBy(desc(auditLogs.createdAt))
+      .limit(limit);
+  }
+
+  /**
+   * Count audit events by action type within a time range.
+   * Useful for anomaly detection and operational dashboards.
+   */
+  async countByAction(from: Date, to: Date) {
+    return this.db
+      .select({
+        action: auditLogs.action,
+        count: count(),
+      })
+      .from(auditLogs)
+      .where(and(gte(auditLogs.createdAt, from), lte(auditLogs.createdAt, to)))
+      .groupBy(auditLogs.action);
   }
 }

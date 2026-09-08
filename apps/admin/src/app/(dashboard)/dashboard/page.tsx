@@ -2,8 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Wallet, PiggyBank, Users, Landmark, TrendingUp, ArrowRight } from 'lucide-react';
-import { useAnalytics, useDashboard, useVillageWise } from '@/lib/hooks';
+import {
+  Wallet, PiggyBank, Users, Landmark, TrendingUp, ArrowRight,
+  AlertTriangle, CheckCircle, Clock, Activity, Shield, Database,
+} from 'lucide-react';
+import { useAnalytics, useDashboard, useVillageWise, useReconciliationSummary, useSystemHealth, useRiskAlerts } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth';
 import { useT, type TranslationKey } from '@/lib/i18n';
 import { money, formatDayShort, inr } from '@/lib/format';
@@ -23,10 +26,12 @@ export default function DashboardPage() {
   const dash = useDashboard();
   const analytics = useAnalytics(14);
   const villages = useVillageWise({});
+  const reconciliation = useReconciliationSummary();
+  const health = useSystemHealth();
+  const risk = useRiskAlerts();
   const { user } = useAuth();
   const t = useT();
 
-  // Time-of-day greeting is resolved client-side to avoid SSR hydration drift.
   const [greetingKey, setGreetingKey] = useState<TranslationKey>('dashboard.greetingWelcome');
   useEffect(() => {
     const h = new Date().getHours();
@@ -44,8 +49,7 @@ export default function DashboardPage() {
 
   const d = dash.data;
   const chartData =
-    analytics.data?.series.map((p) => ({ label: formatDayShort(p.day), paise: p.collected.paise })) ??
-    [];
+    analytics.data?.series.map((p) => ({ label: formatDayShort(p.day), paise: p.collected.paise })) ?? [];
 
   const topVillages = [...(villages.data ?? [])]
     .sort((a, b) => b.currentBalance.paise - a.currentBalance.paise)
@@ -53,9 +57,14 @@ export default function DashboardPage() {
 
   const firstName = user?.name?.split(' ')[0];
 
+  const healthStatus = health.data?.overall ?? 'unknown';
+  const healthColor = healthStatus === 'healthy' ? 'text-emerald-500' : healthStatus === 'degraded' ? 'text-amber-500' : 'text-red-500';
+
+  const riskSummary = risk.data?.summary;
+  const recon = reconciliation.data;
+
   return (
     <div className="space-y-6">
-      {/* Hero greeting */}
       <div className="card card-topline relative overflow-hidden p-6 sm:p-7">
         <div
           aria-hidden
@@ -69,7 +78,7 @@ export default function DashboardPage() {
           <div>
             <p className="text-sm font-medium text-ink-muted">
               {t(greetingKey)}
-              {firstName ? `, ${firstName}` : ''} 👋
+              {firstName ? `, ${firstName}` : ''}
             </p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
               <span className="text-gradient">{t('dashboard.title')}</span>{' '}
@@ -79,9 +88,16 @@ export default function DashboardPage() {
               {t('dashboard.subtitle')}
             </p>
           </div>
-          <Link href="/collection" className="btn-primary shrink-0">
-            <Wallet size={16} /> {t('dashboard.recordCollection')}
-          </Link>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 rounded-xl border border-line bg-surface/60 px-3 py-2 text-xs">
+              <Activity size={14} className={healthColor} />
+              <span className="text-ink-muted">System</span>
+              <span className={`font-semibold capitalize ${healthColor}`}>{healthStatus}</span>
+            </div>
+            <Link href="/collection" className="btn-primary shrink-0">
+              <Wallet size={16} /> {t('dashboard.recordCollection')}
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -112,6 +128,97 @@ export default function DashboardPage() {
           icon={<Users size={20} />}
           tone="slate"
         />
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {recon && (
+          <Card>
+            <CardHeader title="Reconciliation" subtitle="Financial integrity" />
+            <CardBody className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-ink-soft">Matched</span>
+                <div className="flex items-center gap-1.5">
+                  <CheckCircle size={14} className="text-emerald-500" />
+                  <Badge tone="green">{recon.matchedEntries}</Badge>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-ink-soft">Missing entries</span>
+                <div className="flex items-center gap-1.5">
+                  {recon.missingEntries > 0 && <AlertTriangle size={14} className="text-amber-500" />}
+                  <Badge tone={recon.missingEntries > 0 ? 'amber' : 'green'}>{recon.missingEntries}</Badge>
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-ink-soft">Stale pending</span>
+                <div className="flex items-center gap-1.5">
+                  {recon.stalePending > 0 && <Clock size={14} className="text-amber-500" />}
+                  <Badge tone={recon.stalePending > 0 ? 'amber' : 'green'}>{recon.stalePending}</Badge>
+                </div>
+              </div>
+              <div className="border-t border-line-soft pt-3">
+                <Link href="/reconciliation" className="text-xs font-medium text-brand-600 hover:text-brand-700">
+                  View Reconciliation Center <ArrowRight size={12} className="inline" />
+                </Link>
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {riskSummary && (
+          <Card>
+            <CardHeader title="Risk Alerts" subtitle="Fraud detection" />
+            <CardBody className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-ink-soft">Critical</span>
+                <Badge tone={riskSummary.critical > 0 ? 'red' : 'green'}>{riskSummary.critical}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-ink-soft">High</span>
+                <Badge tone={riskSummary.high > 0 ? 'red' : 'green'}>{riskSummary.high}</Badge>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-ink-soft">Medium</span>
+                <Badge tone={riskSummary.medium > 0 ? 'amber' : 'green'}>{riskSummary.medium}</Badge>
+              </div>
+              <div className="border-t border-line-soft pt-3">
+                <Link href="/risk" className="text-xs font-medium text-brand-600 hover:text-brand-700">
+                  View Risk Center <ArrowRight size={12} className="inline" />
+                </Link>
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        {health.data && (
+          <Card>
+            <CardHeader title="System Health" subtitle="Platform status" />
+            <CardBody className="space-y-3">
+              {health.data.components.map((c) => (
+                <div key={c.name} className="flex items-center justify-between">
+                  <span className="text-sm text-ink-soft capitalize">{c.name}</span>
+                  <div className="flex items-center gap-1.5">
+                    {c.status === 'healthy' ? (
+                      <CheckCircle size={14} className="text-emerald-500" />
+                    ) : c.status === 'degraded' ? (
+                      <AlertTriangle size={14} className="text-amber-500" />
+                    ) : (
+                      <AlertTriangle size={14} className="text-red-500" />
+                    )}
+                    <Badge tone={c.status === 'healthy' ? 'green' : c.status === 'degraded' ? 'amber' : 'red'}>
+                      {c.latencyMs}ms
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+              <div className="border-t border-line-soft pt-3">
+                <Link href="/system-health" className="text-xs font-medium text-brand-600 hover:text-brand-700">
+                  View System Health <ArrowRight size={12} className="inline" />
+                </Link>
+              </div>
+            </CardBody>
+          </Card>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

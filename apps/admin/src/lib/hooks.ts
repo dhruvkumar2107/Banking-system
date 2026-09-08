@@ -162,7 +162,7 @@ export function useVillage(id: string) {
 export function useCreateVillage() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name: string; code: string }) => api.post('/villages', body),
+    mutationFn: (body: { name: string; code: string; district: string; taluk: string }) => api.post('/villages', body),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.villages }),
   });
 }
@@ -170,7 +170,7 @@ export function useCreateVillage() {
 export function useUpdateVillage(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: { name?: string; code?: string }) => api.patch(`/villages/${id}`, body),
+    mutationFn: (body: { name?: string; code?: string; district?: string; taluk?: string }) => api.patch(`/villages/${id}`, body),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: qk.villages });
       qc.invalidateQueries({ queryKey: qk.village(id) });
@@ -528,5 +528,103 @@ export function useUpdateScheme() {
       minBalancePaise?: number;
     }) => api.patch<Scheme>('/withdrawals/scheme', body),
     onSuccess: () => qc.invalidateQueries({ queryKey: qk.scheme }),
+  });
+}
+
+// ── reconciliation ─────────────────────────────────────────────────────────
+export interface ReconciliationSummary {
+  totalSuccessfulTransactions: number;
+  matchedEntries: number;
+  missingEntries: number;
+  stalePending: number;
+  duplicateEntries: number;
+  accountsInconsistent: number;
+  lastScanAt: string | null;
+}
+
+export interface ReconciliationItem {
+  id: string;
+  transactionId: string;
+  orderId: string | null;
+  paymentId: string | null;
+  amount: { paise: number; rupees: number; display: string };
+  status: 'matched' | 'mismatch' | 'pending' | 'investigation' | 'resolved';
+  ledgerEntryExists: boolean;
+  ledgerAmount: { paise: number; rupees: number; display: string } | null;
+  discrepancy: string | null;
+  createdAt: string;
+}
+
+export interface SystemHealth {
+  overall: 'healthy' | 'degraded' | 'down' | 'unknown';
+  components: { name: string; status: string; message: string; latencyMs: number }[];
+  uptime: number;
+  version: string;
+  environment: string;
+  timestamp: string;
+}
+
+export interface SystemStats {
+  totalCustomers: number;
+  totalAccounts: number;
+  totalTransactions: number;
+  activeAccounts: number;
+  pendingTransactions: number;
+  failedTransactions24h: number;
+  auditEvents24h: number;
+  uptime: number;
+}
+
+export interface RiskAlert {
+  id: string;
+  type: string;
+  severity: 'info' | 'low' | 'medium' | 'high' | 'critical';
+  title: string;
+  description: string;
+  entityType: string;
+  entityId: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+}
+
+export function useReconciliationSummary() {
+  return useQuery({
+    queryKey: ['reconciliation', 'summary'],
+    queryFn: () => api.get<ReconciliationSummary>('/reconciliation/summary'),
+    refetchInterval: 300_000,
+  });
+}
+
+export function useReconciliationScan(params?: { from?: string; to?: string }) {
+  return useQuery({
+    queryKey: ['reconciliation', 'scan', params],
+    queryFn: () => api.get<{ totalTransactions: number; matched: number; mismatched: number; pendingReview: number; items: ReconciliationItem[] }>(
+      '/reconciliation/scan',
+      params as never,
+    ),
+  });
+}
+
+export function useSystemHealth() {
+  return useQuery({
+    queryKey: ['health'],
+    queryFn: () => api.get<SystemHealth>('/health'),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useSystemStats() {
+  return useQuery({
+    queryKey: ['health', 'stats'],
+    queryFn: () => api.get<SystemStats>('/health/stats'),
+    refetchInterval: 60_000,
+  });
+}
+
+export function useRiskAlerts() {
+  return useQuery({
+    queryKey: ['risk', 'alerts'],
+    queryFn: () => api.get<{ alerts: RiskAlert[]; summary: { critical: number; high: number; medium: number; low: number; info: number; total: number } }>('/risk/alerts'),
+    refetchInterval: 120_000,
   });
 }

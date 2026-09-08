@@ -29,6 +29,7 @@ import {
   useUpsertBank,
   useCreatePigmyAccount,
   useVillages,
+  useAuditLogs,
 } from '@/lib/hooks';
 import { useAuth } from '@/lib/auth';
 import { money, formatDate, formatDateTime, initials, maskAccount } from '@/lib/format';
@@ -60,6 +61,7 @@ export default function Customer360Page({ params }: { params: { id: string } }) 
 
   const c = useCustomer(id);
   const villages = useVillages();
+  const auditLogs = useAuditLogs({ entityId: id, limit: 10 });
 
   const [modal, setModal] = useState<ModalKind>(null);
   const close = () => setModal(null);
@@ -197,10 +199,54 @@ export default function Customer360Page({ params }: { params: { id: string } }) 
               )}
             </CardBody>
           </Card>
+
+          {/* Audit History */}
+          <Card>
+            <CardHeader title="Audit History" subtitle="Recent actions on this customer" />
+            <CardBody>
+              {auditLogs.data?.rows && auditLogs.data.rows.length > 0 ? (
+                <div className="divide-y divide-line-soft">
+                  {auditLogs.data.rows.map((log) => (
+                    <div key={log.id} className="flex items-start gap-3 py-2.5">
+                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                        {log.actorType === 'admin' ? 'A' : log.actorType === 'customer' ? 'C' : 'S'}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-ink">{log.action}</p>
+                        <p className="text-xs text-ink-muted">
+                          {log.entity && log.entityId && `${log.entity}: ${log.entityId.slice(0, 8)}...`}
+                        </p>
+                        <p className="text-xs text-ink-faint">{formatDateTime(log.createdAt)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState title="No audit history" />
+              )}
+            </CardBody>
+          </Card>
         </div>
 
         {/* Right column */}
         <div className="space-y-6">
+          {/* Savings Summary */}
+          <Card>
+            <CardHeader title="Savings Summary" />
+            <CardBody className="space-y-3 text-sm">
+              <Row
+                label="Total Balance"
+                value={<span className="font-semibold text-ink">{cust.pigmyAccounts.length > 0 ? money({ paise: cust.pigmyAccounts.reduce((sum, a) => sum + a.currentBalance.paise, 0), rupees: 0, display: '' }) : '₹0'}</span>}
+              />
+              <Row
+                label="Total Deposited"
+                value={cust.pigmyAccounts.length > 0 ? money({ paise: cust.pigmyAccounts.reduce((sum, a) => sum + a.totalDeposited.paise, 0), rupees: 0, display: '' }) : '₹0'}
+              />
+              <Row label="Active Accounts" value={cust.pigmyAccounts.filter((a) => a.status === 'active').length.toString()} />
+              <Row label="Daily Target" value={cust.pigmyAccounts.length > 0 ? money(cust.pigmyAccounts[0].dailyAmount) : '—'} />
+            </CardBody>
+          </Card>
+
           <Card>
             <CardHeader title="Profile" />
             <CardBody className="space-y-3 text-sm">
