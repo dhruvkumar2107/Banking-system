@@ -30,6 +30,8 @@ export default function VillagesPage() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [district, setDistrict] = useState('');
+  const [taluk, setTaluk] = useState('');
   const [err, setErr] = useState<string | null>(null);
 
   async function submit(e: React.FormEvent) {
@@ -40,11 +42,18 @@ export default function VillagesPage() {
       return;
     }
     try {
-      await create.mutateAsync({ name: name.trim(), code: code.trim() });
+      await create.mutateAsync({
+        name: name.trim(),
+        code: code.trim(),
+        district: district.trim(),
+        taluk: taluk.trim(),
+      });
       toast.success('Village created');
       setOpen(false);
       setName('');
       setCode('');
+      setDistrict('');
+      setTaluk('');
     } catch (e) {
       setErr((e as Error).message || 'Could not create village');
     }
@@ -80,6 +89,9 @@ export default function VillagesPage() {
                   <Badge tone="indigo">{v.code}</Badge>
                 </div>
                 <h3 className="mt-4 text-lg font-semibold text-ink">{v.name}</h3>
+                <p className="mt-1 text-sm text-ink-muted">
+                  {v.district} • {v.taluk}
+                </p>
                 <p className="mt-1 text-sm text-ink-muted">
                   {v.customerCount} {v.customerCount === 1 ? 'customer' : 'customers'}
                 </p>
@@ -130,6 +142,14 @@ export default function VillagesPage() {
           <Field label="Code" htmlFor="v-code" hint="Short unique identifier, e.g. RMP" error={err}>
             <Input id="v-code" required value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="RMP" />
           </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="District" htmlFor="v-district">
+              <Input id="v-district" required value={district} onChange={(e) => setDistrict(e.target.value)} placeholder="Bangalore Urban" />
+            </Field>
+            <Field label="Taluk" htmlFor="v-taluk">
+              <Input id="v-taluk" required value={taluk} onChange={(e) => setTaluk(e.target.value)} placeholder="Bangalore North" />
+            </Field>
+          </div>
         </form>
       </Modal>
     </div>

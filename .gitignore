@@ -11,10 +11,13 @@ node_modules/
 
 # Build outputs
 dist/
-build/
+build/*
 .next/
 out/
 *.tsbuildinfo
+
+# Keep pre-built Flutter web output for Vercel deployment
+!apps/customer/build/web/
 
 # Local database (PGlite file store)
 .data/
@@ -43,7 +46,6 @@ Thumbs.db
 
 # Flutter
 apps/customer/.dart_tool/
-apps/customer/build/
 apps/customer/.flutter-plugins
 apps/customer/.flutter-plugins-dependencies
 apps/customer/.packages

@@ -52,6 +52,8 @@ export interface VillageListItem {
   id: string;
   name: string;
   code: string;
+  district: string;
+  taluk: string;
   createdAt: string;
   customerCount: number;
 }
@@ -60,6 +62,8 @@ export interface VillageDetail {
   id: string;
   name: string;
   code: string;
+  district: string;
+  taluk: string;
   createdAt: string;
   stats: { customerCount: number; totalBalance: number };
 }
@@ -68,6 +72,8 @@ export interface VillageWiseRow {
   id: string;
   name: string;
   code: string;
+  district: string;
+  taluk: string;
   customers: number;
   accounts: number;
   currentBalance: Money;

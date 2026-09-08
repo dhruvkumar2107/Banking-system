@@ -50,6 +50,8 @@ export class VillagesService {
         id: villages.id,
         name: villages.name,
         code: villages.code,
+        district: villages.district,
+        taluk: villages.taluk,
         createdAt: villages.createdAt,
         customerCount: count(customers.id),
       })
@@ -84,7 +86,11 @@ export class VillagesService {
 
     const [after] = await this.db
       .update(villages)
-      .set({ name: dto.name ?? before.name })
+      .set({
+        name: dto.name ?? before.name,
+        district: dto.district ?? before.district,
+        taluk: dto.taluk ?? before.taluk,
+      })
       .where(eq(villages.id, id))
       .returning();
 
@@ -103,11 +109,17 @@ export class VillagesService {
 
   /**
    * Public, unauthenticated village list for the customer registration screen.
-   * Returns only non-sensitive fields (id, name, code) for every village.
+   * Returns only non-sensitive fields (id, name, code, district, taluk) for every village.
    */
   async listPublic() {
     return this.db
-      .select({ id: villages.id, name: villages.name, code: villages.code })
+      .select({
+        id: villages.id,
+        name: villages.name,
+        code: villages.code,
+        district: villages.district,
+        taluk: villages.taluk,
+      })
       .from(villages)
       .orderBy(asc(villages.name));
   }

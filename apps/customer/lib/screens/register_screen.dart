@@ -145,7 +145,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Village picker
+                // Village picker with search
                 villages.when(
                   loading: () => const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),
@@ -156,20 +156,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     message: e is ApiException ? e.message : s.t('somethingWrong'),
                     onRetry: () => ref.invalidate(villagesProvider),
                   ),
-                  data: (List<Village> list) => DropdownButtonFormField<Village>(
-                    initialValue: _village,
-                    isExpanded: true,
-                    decoration: InputDecoration(
-                      labelText: s.t('selectVillage'),
-                      prefixIcon: const Icon(Icons.location_on_rounded),
-                    ),
-                    items: list
-                        .map((Village v) => DropdownMenuItem<Village>(
-                              value: v,
-                              child: Text('${v.name} (${v.code})'),
-                            ))
-                        .toList(),
+                  data: (List<Village> list) => _VillagePicker(
+                    villages: list,
+                    selected: _village,
                     onChanged: (Village? v) => setState(() => _village = v),
+                    labelText: s.t('selectVillage'),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -232,6 +223,291 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A village picker with search functionality grouped by district and taluk.
+class _VillagePicker extends StatefulWidget {
+  const _VillagePicker({
+    required this.villages,
+    required this.selected,
+    required this.onChanged,
+    required this.labelText,
+  });
+
+  final List<Village> villages;
+  final Village? selected;
+  final ValueChanged<Village?> onChanged;
+  final String labelText;
+
+  @override
+  State<_VillagePicker> createState() => _VillagePickerState();
+}
+
+class _VillagePickerState extends State<_VillagePicker> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Village> get _filteredVillages {
+    if (_searchQuery.isEmpty) return widget.villages;
+    final query = _searchQuery.toLowerCase();
+    return widget.villages.where((v) {
+      return v.name.toLowerCase().contains(query) ||
+          v.code.toLowerCase().contains(query) ||
+          v.district.toLowerCase().contains(query) ||
+          v.taluk.toLowerCase().contains(query);
+    }).toList();
+  }
+
+  Map<String, Map<String, List<Village>>> get _groupedVillages {
+    final Map<String, Map<String, List<Village>>> grouped = {};
+    for (final village in _filteredVillages) {
+      final district = village.district;
+      final taluk = village.taluk;
+      grouped.putIfAbsent(district, () => {});
+      grouped[district]!.putIfAbsent(taluk, () => []);
+      grouped[district]![taluk]!.add(village);
+    }
+    // Sort districts and taluks
+    final sortedGrouped = Map<String, Map<String, List<Village>>>.from(
+      Map.fromEntries(
+        grouped.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
+      ),
+    );
+    for (final district in sortedGrouped.keys) {
+      sortedGrouped[district] = Map<String, List<Village>>.from(
+        Map.fromEntries(
+          sortedGrouped[district]!.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
+        ),
+      );
+    }
+    return sortedGrouped;
+  }
+
+  void _showVillagePicker() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.9,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        expand: false,
+        builder: (context, scrollController) => Column(
+          children: [
+            // Handle bar
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Search bar
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search village, district, or taluk...',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                onChanged: (value) => setState(() => _searchQuery = value),
+              ),
+            ),
+            // Village list
+            Expanded(
+              child: _filteredVillages.isEmpty
+                  ? const Center(child: Text('No villages found'))
+                  : ListView.builder(
+                      controller: scrollController,
+                      itemCount: _buildListItemCount(),
+                      itemBuilder: (context, index) => _buildListItem(index),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _buildListItemCount() {
+    int count = 0;
+    final grouped = _groupedVillages;
+    for (final district in grouped.keys) {
+      count++; // District header
+      for (final taluk in grouped[district]!.keys) {
+        count++; // Taluk header
+        count += grouped[district]![taluk]!.length; // Villages
+      }
+    }
+    return count;
+  }
+
+  Widget _buildListItem(int index) {
+    final grouped = _groupedVillages;
+    int currentIndex = 0;
+
+    for (final district in grouped.keys) {
+      if (currentIndex == index) {
+        return _buildDistrictHeader(district);
+      }
+      currentIndex++;
+
+      for (final taluk in grouped[district]!.keys) {
+        if (currentIndex == index) {
+          return _buildTalukHeader(taluk);
+        }
+        currentIndex++;
+
+        final villages = grouped[district]![taluk]!;
+        for (final village in villages) {
+          if (currentIndex == index) {
+            return _buildVillageTile(village);
+          }
+          currentIndex++;
+        }
+      }
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildDistrictHeader(String district) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+      child: Row(
+        children: [
+          Icon(Icons.location_city, size: 18, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 8),
+          Text(
+            district,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTalukHeader(String taluk) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+      color: Theme.of(context).colorScheme.surfaceContainerHighest.withOpacity(0.3),
+      child: Row(
+        children: [
+          Icon(Icons.map, size: 16, color: Theme.of(context).colorScheme.secondary),
+          const SizedBox(width: 8),
+          Text(
+            taluk,
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
+              color: Theme.of(context).colorScheme.secondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVillageTile(Village village) {
+    final isSelected = widget.selected?.id == village.id;
+    return ListTile(
+      title: Text(village.name),
+      subtitle: Text('${village.district} • ${village.taluk}'),
+      trailing: isSelected
+          ? Icon(Icons.check_circle, color: Theme.of(context).colorScheme.primary)
+          : null,
+      onTap: () {
+        widget.onChanged(village);
+        Navigator.of(context).pop();
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          widget.labelText,
+          style: TextStyle(
+            fontSize: 12,
+            color: Theme.of(context).colorScheme.outline,
+          ),
+        ),
+        const SizedBox(height: 4),
+        InkWell(
+          onTap: _showVillagePicker,
+          borderRadius: BorderRadius.circular(12),
+          child: InputDecorator(
+            decoration: InputDecoration(
+              prefixIcon: const Icon(Icons.location_on_rounded),
+              suffixIcon: const Icon(Icons.arrow_drop_down),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: widget.selected != null
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              widget.selected!.name,
+                              style: const TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            Text(
+                              '${widget.selected!.district} • ${widget.selected!.taluk}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context).colorScheme.outline,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          'Select your village',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

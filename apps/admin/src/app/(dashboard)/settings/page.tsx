@@ -362,36 +362,56 @@ function VillagePicker({
   selected,
   onToggle,
 }: {
-  villages: { id: string; name: string; code: string }[];
+  villages: { id: string; name: string; code: string; district: string; taluk: string }[];
   selected: string[];
   onToggle: (id: string) => void;
 }) {
   if (!villages.length) {
     return <p className="text-xs text-ink-muted">No villages available.</p>;
   }
+  
+  // Group villages by district
+  const groupedByDistrict = villages.reduce((acc, v) => {
+    if (!acc[v.district]) acc[v.district] = [];
+    acc[v.district].push(v);
+    return acc;
+  }, {} as Record<string, typeof villages>);
+
   return (
-    <div className="max-h-44 space-y-1 overflow-y-auto rounded-xl border border-line bg-surface-2 p-2">
-      {villages.map((v) => {
-        const on = selected.includes(v.id);
-        return (
-          <label
-            key={v.id}
-            className={cn(
-              'flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition',
-              on ? 'bg-brand-500/10 text-ink' : 'text-ink-soft hover:bg-surface',
-            )}
-          >
-            <input
-              type="checkbox"
-              checked={on}
-              onChange={() => onToggle(v.id)}
-              className="h-4 w-4 rounded border-line text-brand-600 focus:ring-brand-500"
-            />
-            <span className="font-medium">{v.name}</span>
-            <Badge tone="slate">{v.code}</Badge>
-          </label>
-        );
-      })}
+    <div className="max-h-64 space-y-2 overflow-y-auto rounded-xl border border-line bg-surface-2 p-2">
+      {Object.entries(groupedByDistrict).map(([district, districtVillages]) => (
+        <div key={district}>
+          <div className="px-2 py-1 text-xs font-semibold text-ink-muted uppercase tracking-wide">
+            {district}
+          </div>
+          <div className="space-y-1">
+            {districtVillages.map((v) => {
+              const on = selected.includes(v.id);
+              return (
+                <label
+                  key={v.id}
+                  className={cn(
+                    'flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition',
+                    on ? 'bg-brand-500/10 text-ink' : 'text-ink-soft hover:bg-surface',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    onChange={() => onToggle(v.id)}
+                    className="h-4 w-4 rounded border-line text-brand-600 focus:ring-brand-500"
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-medium">{v.name}</span>
+                    <span className="text-xs text-ink-muted">{v.taluk}</span>
+                  </div>
+                  <Badge tone="slate">{v.code}</Badge>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -402,7 +422,7 @@ function CreateAdminModal({
   villages,
   onClose,
 }: {
-  villages: { id: string; name: string; code: string }[];
+  villages: { id: string; name: string; code: string; district: string; taluk: string }[];
   onClose: () => void;
 }) {
   const create = useCreateAdmin();
@@ -509,7 +529,7 @@ function EditAdminModal({
 }: {
   admin: AdminUser;
   isSelf: boolean;
-  villages: { id: string; name: string; code: string }[];
+  villages: { id: string; name: string; code: string; district: string; taluk: string }[];
   onClose: () => void;
 }) {
   const update = useUpdateAdmin(admin.id);

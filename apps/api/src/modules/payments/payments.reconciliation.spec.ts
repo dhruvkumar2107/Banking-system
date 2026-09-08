@@ -59,7 +59,7 @@ describe('Payment reconciliation', () => {
       audit,
     );
 
-    const [village] = await db.insert(villages).values({ name: 'Village A', code: 'VLGA' }).returning();
+    const [village] = await db.insert(villages).values({ name: 'Village A', code: 'VLGA', district: 'Test District', taluk: 'Test Taluk' }).returning();
     const [cust] = await db
       .insert(customers)
       .values({ villageId: village.id, name: 'Asha', mobile: '9000000001' })

@@ -12,6 +12,18 @@ export class CreateVillageDto {
   @IsString()
   @Matches(/^[A-Za-z0-9_-]{2,20}$/, { message: 'Code must be 2-20 chars: letters, digits, - or _' })
   code!: string;
+
+  @ApiProperty({ example: 'Bangalore Urban' })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  district!: string;
+
+  @ApiProperty({ example: 'Bangalore North' })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  taluk!: string;
 }
 
 export class UpdateVillageDto {
@@ -21,4 +33,18 @@ export class UpdateVillageDto {
   @MinLength(2)
   @MaxLength(120)
   name?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  district?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  taluk?: string;
 }

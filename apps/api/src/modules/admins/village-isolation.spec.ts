@@ -45,8 +45,8 @@ describe('Village isolation', () => {
     pigmy = new PigmyService(db, audit);
     customersSvc = new CustomersService(db, audit, pigmy);
 
-    const [va] = await db.insert(villages).values({ name: 'Village A', code: 'VLGA' }).returning();
-    const [vb] = await db.insert(villages).values({ name: 'Village B', code: 'VLGB' }).returning();
+    const [va] = await db.insert(villages).values({ name: 'Village A', code: 'VLGA', district: 'Test District', taluk: 'Test Taluk' }).returning();
+    const [vb] = await db.insert(villages).values({ name: 'Village B', code: 'VLGB', district: 'Test District', taluk: 'Test Taluk' }).returning();
     villageAId = va.id;
     villageBId = vb.id;
 

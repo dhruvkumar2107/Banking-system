@@ -46,11 +46,11 @@ describe('AuthService', () => {
     const otp = new OtpService(db, config, sms);
     const jwt = new JwtService({ secret: config.config.jwt.accessSecret });
     tokens = new TokensService(db, jwt, config);
-    auth = new AuthService(db, otp, tokens, customersSvc, audit);
+    auth = new AuthService(db, config, otp, tokens, customersSvc, audit);
 
     const [v] = await db
       .insert(villages)
-      .values({ name: 'Village A', code: 'VLGA' })
+      .values({ name: 'Village A', code: 'VLGA', district: 'Test District', taluk: 'Test Taluk' })
       .returning();
     villageId = v.id;
   });

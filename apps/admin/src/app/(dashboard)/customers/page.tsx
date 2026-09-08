@@ -112,11 +112,11 @@ export default function CustomersPage() {
                 />
               </div>
             </Field>
-            <Field label="Village" className="w-52">
+            <Field label="Village" className="w-64">
               <Select value={villageId} onChange={(e) => { setVillageId(e.target.value); setPage(1); }}>
                 <option value="">All villages</option>
                 {villages.data?.map((v) => (
-                  <option key={v.id} value={v.id}>{v.name}</option>
+                  <option key={v.id} value={v.id}>{v.name} ({v.district})</option>
                 ))}
               </Select>
             </Field>
@@ -212,7 +212,7 @@ export default function CustomersPage() {
             <Select required value={form.villageId} onChange={(e) => set('villageId', e.target.value)}>
               <option value="">Select village…</option>
               {villages.data?.map((v) => (
-                <option key={v.id} value={v.id}>{v.name}</option>
+                <option key={v.id} value={v.id}>{v.name} - {v.district}, {v.taluk}</option>
               ))}
             </Select>
           </Field>

@@ -45,11 +45,15 @@ export default function VillageDetailPage({ params }: { params: { id: string } }
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
+  const [district, setDistrict] = useState('');
+  const [taluk, setTaluk] = useState('');
   const [err, setErr] = useState<string | null>(null);
 
   function openEdit() {
     setName(village.data?.name ?? '');
     setCode(village.data?.code ?? '');
+    setDistrict(village.data?.district ?? '');
+    setTaluk(village.data?.taluk ?? '');
     setErr(null);
     setOpen(true);
   }
@@ -62,7 +66,12 @@ export default function VillageDetailPage({ params }: { params: { id: string } }
       return;
     }
     try {
-      await update.mutateAsync({ name: name.trim(), code: code.trim() });
+      await update.mutateAsync({
+        name: name.trim(),
+        code: code.trim(),
+        district: district.trim(),
+        taluk: taluk.trim(),
+      });
       toast.success('Village updated');
       setOpen(false);
     } catch (e) {
@@ -87,7 +96,7 @@ export default function VillageDetailPage({ params }: { params: { id: string } }
             {v.name} <Badge tone="indigo">{v.code}</Badge>
           </span>
         }
-        subtitle={`Created ${formatDate(v.createdAt)}`}
+        subtitle={`${v.district} • ${v.taluk} • Created ${formatDate(v.createdAt)}`}
         actions={
           hasRole('superadmin') ? (
             <Button variant="outline" onClick={openEdit}>
@@ -169,6 +178,14 @@ export default function VillageDetailPage({ params }: { params: { id: string } }
           <Field label="Code" error={err}>
             <Input value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} />
           </Field>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="District">
+              <Input value={district} onChange={(e) => setDistrict(e.target.value)} />
+            </Field>
+            <Field label="Taluk">
+              <Input value={taluk} onChange={(e) => setTaluk(e.target.value)} />
+            </Field>
+          </div>
         </form>
       </Modal>
     </div>

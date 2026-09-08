@@ -19,7 +19,7 @@ describe('LedgerService', () => {
     ({ db, close } = await createTestDb());
     ledger = new LedgerService(db, new AuditService(db));
 
-    const [v] = await db.insert(villages).values({ name: 'Village A', code: 'VLGA' }).returning();
+    const [v] = await db.insert(villages).values({ name: 'Village A', code: 'VLGA', district: 'Test District', taluk: 'Test Taluk' }).returning();
     const [c] = await db
       .insert(customers)
       .values({ villageId: v.id, name: 'Rahul', mobile: '9000000001' })

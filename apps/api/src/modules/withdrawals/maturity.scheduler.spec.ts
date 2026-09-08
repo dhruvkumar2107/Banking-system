@@ -34,7 +34,7 @@ describe('MaturityScheduler', () => {
 
     const [village] = await db
       .insert(villages)
-      .values({ name: 'Village A', code: 'VLGA' })
+      .values({ name: 'Village A', code: 'VLGA', district: 'Test District', taluk: 'Test Taluk' })
       .returning();
 
     const [matureCust] = await db

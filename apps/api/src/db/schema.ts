@@ -100,6 +100,8 @@ export const villages = pgTable('villages', {
   id: uuid('id').defaultRandom().primaryKey(),
   name: text('name').notNull(),
   code: text('code').notNull().unique(),
+  district: text('district').notNull(),
+  taluk: text('taluk').notNull(),
   createdAt: createdAt(),
 });
 

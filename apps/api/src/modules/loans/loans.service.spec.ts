@@ -97,8 +97,8 @@ describe('LoansService', () => {
     settings = new LoanSettingsService(db, audit);
     svc = new LoansService(db, audit, ledger, new NotificationsService(db, audit), settings);
 
-    const [va] = await db.insert(villages).values({ name: 'Village A', code: 'VLGA' }).returning();
-    const [vb] = await db.insert(villages).values({ name: 'Village B', code: 'VLGB' }).returning();
+    const [va] = await db.insert(villages).values({ name: 'Village A', code: 'VLGA', district: 'Test District', taluk: 'Test Taluk' }).returning();
+    const [vb] = await db.insert(villages).values({ name: 'Village B', code: 'VLGB', district: 'Test District', taluk: 'Test Taluk' }).returning();
     villageAId = va.id;
     villageBId = vb.id;
 
