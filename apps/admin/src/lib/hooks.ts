@@ -595,12 +595,10 @@ export function useReconciliationSummary() {
   });
 }
 
-export function useReconciliationScan(params?: { from?: string; to?: string }) {
-  return useQuery({
-    queryKey: ['reconciliation', 'scan', params],
-    queryFn: () => api.get<{ totalTransactions: number; matched: number; mismatched: number; pendingReview: number; items: ReconciliationItem[] }>(
+export function useReconciliationScan() {
+  return useMutation({
+    mutationFn: () => api.get<{ totalTransactions: number; matched: number; mismatched: number; pendingReview: number; items: ReconciliationItem[] }>(
       '/reconciliation/scan',
-      params as never,
     ),
   });
 }
@@ -621,10 +619,10 @@ export function useSystemStats() {
   });
 }
 
-export function useRiskAlerts() {
+export function useRiskAlerts(params?: { page?: number; limit?: number }) {
   return useQuery({
-    queryKey: ['risk', 'alerts'],
-    queryFn: () => api.get<{ alerts: RiskAlert[]; summary: { critical: number; high: number; medium: number; low: number; info: number; total: number } }>('/risk/alerts'),
+    queryKey: ['risk', 'alerts', params],
+    queryFn: () => api.get<{ alerts: RiskAlert[]; summary: { critical: number; high: number; medium: number; low: number; info: number; total: number } }>('/risk/alerts', params as never),
     refetchInterval: 120_000,
   });
 }

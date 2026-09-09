@@ -274,7 +274,7 @@ export class ReconciliationService {
     accountsInconsistent: number;
     lastScanAt: Date | null;
   }> {
-    const [[{ value: totalSuccess }], [{ value: matchedEntries }], [{ value: missingEntries }]] =
+    const [[{ value: totalSuccess }], [{ value: matchedEntries }], missingResult] =
       await Promise.all([
         this.db
           .select({ value: count() })
@@ -284,13 +284,13 @@ export class ReconciliationService {
           .select({ value: count() })
           .from(ledgerEntries)
           .where(sql`${ledgerEntries.transactionId} IN (SELECT id FROM transactions WHERE status = 'success')`),
-        this.db
-          .select({ value: sql<number>`(
-            SELECT count(*) FROM transactions t
+        this.db.execute(sql<{ value: number }>`(
+            SELECT count(*) as value FROM transactions t
             WHERE t.status = 'success'
             AND NOT EXISTS (SELECT 1 FROM ledger_entries l WHERE l.transaction_id = t.id)
-          )` }),
+          )`),
       ]);
+    const missingEntries = missingResult[0]?.value ?? 0;
 
     const stale = await this.findStalePending(30);
     const dupes = await this.findDuplicateEntries();

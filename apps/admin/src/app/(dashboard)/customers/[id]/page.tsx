@@ -204,9 +204,9 @@ export default function Customer360Page({ params }: { params: { id: string } }) 
           <Card>
             <CardHeader title="Audit History" subtitle="Recent actions on this customer" />
             <CardBody>
-              {auditLogs.data?.rows && auditLogs.data.rows.length > 0 ? (
+              {auditLogs.data?.data && auditLogs.data.data.length > 0 ? (
                 <div className="divide-y divide-line-soft">
-                  {auditLogs.data.rows.map((log) => (
+                  {auditLogs.data.data.map((log) => (
                     <div key={log.id} className="flex items-start gap-3 py-2.5">
                       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-400">
                         {log.actorType === 'admin' ? 'A' : log.actorType === 'customer' ? 'C' : 'S'}

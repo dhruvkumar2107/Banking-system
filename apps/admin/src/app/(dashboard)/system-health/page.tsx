@@ -14,16 +14,15 @@ import {
 } from '@/components/ui';
 
 export default function SystemHealthPage() {
-  const t = useT();
   const health = useSystemHealth();
   const stats = useSystemStats();
 
   function statusTone(status: string) {
     switch (status) {
-      case 'healthy': return 'green' as const;
-      case 'degraded': return 'yellow' as const;
-      case 'down': return 'red' as const;
-      default: return 'slate' as const;
+      case 'healthy': return 'green';
+      case 'degraded': return 'amber';
+      case 'down': return 'red';
+      default: return 'slate';
     }
   }
 
@@ -32,12 +31,12 @@ export default function SystemHealthPage() {
       <PageHeader
         title="System Health"
         subtitle="Platform status and operational metrics"
-        action={
+        actions={
           <Button
             variant="outline"
             onClick={() => { health.refetch(); stats.refetch(); }}
-            icon={<RefreshCw size={16} className={health.isFetching ? 'animate-spin' : ''} />}
           >
+            <RefreshCw size={16} className={health.isFetching ? 'animate-spin inline-block mr-1.5 align-middle' : 'inline-block mr-1.5 align-middle'} />
             Refresh
           </Button>
         }
@@ -52,23 +51,22 @@ export default function SystemHealthPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatusCard
             title="Overall Status"
-            value={health.data.status}
+            value={health.data.overall}
             icon={<Activity size={20} />}
-            tone={statusTone(health.data.status)}
+            tone={statusTone(health.data.overall)}
           />
           <StatusCard
-            title="Database"
-            value={health.data.database.status}
-            icon={<Database size={20} />}
-            tone={statusTone(health.data.database.status)}
-            subtitle={`${health.data.database.latencyMs}ms latency`}
+            title="Uptime"
+            value={`${Math.floor(health.data.uptime / 3600)}h ${Math.floor((health.data.uptime % 3600) / 60)}m`}
+            icon={<Clock size={20} />}
+            tone="green"
           />
           <StatusCard
-            title="Transactions"
-            value={health.data.transactions.status}
+            title="Version"
+            value={health.data.version}
             icon={<Server size={20} />}
-            tone={statusTone(health.data.transactions.status)}
-            subtitle={`${health.data.transactions.pendingCount} pending`}
+            tone="slate"
+            subtitle={health.data.environment}
           />
           <StatusCard
             title="Last Check"
@@ -90,36 +88,27 @@ export default function SystemHealthPage() {
           ) : stats.data ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <StatItem label="Total Customers" value={stats.data.totalCustomers} />
-              <StatItem label="Active Pigmy Accounts" value={stats.data.activePigmyAccounts} />
+              <StatItem label="Active Accounts" value={stats.data.activeAccounts} />
               <StatItem label="Total Transactions" value={stats.data.totalTransactions} />
-              <StatItem label="Pending Withdrawals" value={stats.data.pendingWithdrawals} />
-              <StatItem label="Pending Loans" value={stats.data.pendingLoans} />
-              <StatItem label="KYC Pending" value={stats.data.kycPending} />
+              <StatItem label="Pending Transactions" value={stats.data.pendingTransactions} />
             </div>
           ) : null}
         </CardBody>
       </Card>
 
-      {/* Transaction Health Details */}
-      {health.data && (
+      {/* Health Components */}
+      {health.data && health.data.components.length > 0 && (
         <Card>
           <CardBody>
-            <h3 className="mb-4 text-lg font-medium text-ink">Transaction Health</h3>
+            <h3 className="mb-4 text-lg font-medium text-ink">Components</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-lg border border-ink-line bg-surface-2 p-4">
-                <p className="text-sm text-ink-muted">Today&apos;s Transactions</p>
-                <p className="text-2xl font-bold text-ink">{health.data.transactions.todayCount}</p>
-              </div>
-              <div className="rounded-lg border border-ink-line bg-surface-2 p-4">
-                <p className="text-sm text-ink-muted">Today&apos;s Volume</p>
-                <p className="text-2xl font-bold text-ink">
-                  ₹{(health.data.transactions.todayVolume / 100).toLocaleString('en-IN')}
-                </p>
-              </div>
-              <div className="rounded-lg border border-ink-line bg-surface-2 p-4">
-                <p className="text-sm text-ink-muted">Pending Transactions</p>
-                <p className="text-2xl font-bold text-ink">{health.data.transactions.pendingCount}</p>
-              </div>
+              {health.data.components.map((comp) => (
+                <div key={comp.name} className="rounded-lg border border-ink-line bg-surface-2 p-4">
+                  <p className="text-sm text-ink-muted">{comp.name}</p>
+                  <p className="text-lg font-bold text-ink capitalize">{comp.status}</p>
+                  <p className="text-xs text-ink-faint">{comp.latencyMs}ms — {comp.message}</p>
+                </div>
+              ))}
             </div>
           </CardBody>
         </Card>

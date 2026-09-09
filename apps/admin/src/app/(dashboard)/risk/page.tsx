@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { AlertTriangle, Shield, Clock, User, Hash } from 'lucide-react';
+import { AlertTriangle, Shield, Clock, Hash } from 'lucide-react';
 import { useRiskAlerts } from '@/lib/hooks';
 import { formatDateTime } from '@/lib/format';
 import {
@@ -18,24 +18,21 @@ import {
   Th,
   Td,
   TableWrap,
-  Pagination,
-  Button,
   EmptyState,
 } from '@/components/ui';
 
 export default function RiskPage() {
-  const t = useT();
   const [page, setPage] = useState(1);
 
   const alerts = useRiskAlerts({ page, limit: 20 });
 
   function severityTone(severity: string) {
     switch (severity) {
-      case 'critical': return 'red' as const;
-      case 'high': return 'orange' as const;
-      case 'medium': return 'yellow' as const;
-      case 'low': return 'blue' as const;
-      default: return 'slate' as const;
+      case 'critical': return 'red';
+      case 'high': return 'amber';
+      case 'medium': return 'amber';
+      case 'low': return 'blue';
+      default: return 'slate';
     }
   }
 
@@ -65,25 +62,25 @@ export default function RiskPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <SummaryCard
             title="Critical"
-            value={alerts.data.data.filter(a => a.severity === 'critical').length}
+            value={alerts.data.alerts.filter(a => a.severity === 'critical').length}
             icon={<AlertTriangle size={20} />}
             tone="red"
           />
           <SummaryCard
             title="High"
-            value={alerts.data.data.filter(a => a.severity === 'high').length}
+            value={alerts.data.alerts.filter(a => a.severity === 'high').length}
             icon={<AlertTriangle size={20} />}
             tone="orange"
           />
           <SummaryCard
             title="Medium"
-            value={alerts.data.data.filter(a => a.severity === 'medium').length}
+            value={alerts.data.alerts.filter(a => a.severity === 'medium').length}
             icon={<AlertTriangle size={20} />}
             tone="yellow"
           />
           <SummaryCard
             title="Low"
-            value={alerts.data.data.filter(a => a.severity === 'low').length}
+            value={alerts.data.alerts.filter(a => a.severity === 'low').length}
             icon={<AlertTriangle size={20} />}
             tone="blue"
           />
@@ -97,7 +94,7 @@ export default function RiskPage() {
             <LoadingBlock />
           ) : alerts.isError ? (
             <ErrorState message={(alerts.error as Error)?.message} />
-          ) : alerts.data && alerts.data.data.length ? (
+          ) : alerts.data && alerts.data.alerts.length ? (
             <>
               <TableWrap>
                 <Table>
@@ -112,7 +109,7 @@ export default function RiskPage() {
                     </Tr>
                   </Thead>
                   <Tbody>
-                    {alerts.data.data.map((alert) => (
+                    {alerts.data.alerts.map((alert) => (
                       <Tr key={alert.id}>
                         <Td className="whitespace-nowrap text-xs">
                           {formatDateTime(alert.createdAt)}
@@ -128,13 +125,13 @@ export default function RiskPage() {
                             {alert.severity}
                           </Badge>
                         </Td>
-                        <Td className="text-sm">{alert.customerId?.slice(0, 8) || '—'}</Td>
+                        <Td className="text-sm">{alert.entityId?.slice(0, 8) || '—'}</Td>
                         <Td className="max-w-xs truncate text-xs text-ink-muted">
-                          {JSON.stringify(alert.details)}
+                           {JSON.stringify(alert.metadata)}
                         </Td>
                         <Td>
-                          <Badge tone={alert.resolved ? 'green' : 'yellow'}>
-                            {alert.resolved ? 'Resolved' : 'Active'}
+                          <Badge tone="slate">
+                            {alert.type}
                           </Badge>
                         </Td>
                       </Tr>
@@ -142,19 +139,10 @@ export default function RiskPage() {
                   </Tbody>
                 </Table>
               </TableWrap>
-              <Pagination
-                page={alerts.data.page}
-                pages={alerts.data.pages}
-                total={alerts.data.total}
-                limit={alerts.data.limit}
-                onPage={setPage}
-              />
             </>
           ) : (
             <EmptyState
-              title="No risk alerts"
-              description="No suspicious activity detected"
-              icon={<Shield size={22} />}
+              message="No suspicious activity detected"
             />
           )}
         </CardBody>

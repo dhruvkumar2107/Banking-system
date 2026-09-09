@@ -23,7 +23,7 @@ import {
 
 export default function ReconciliationPage() {
   const t = useT();
-  const [scanResult, setScanResult] = useState<{ matched: number; mismatched: number; missing: number } | null>(null);
+  const [scanResult, setScanResult] = useState<{ totalTransactions: number; matched: number; mismatched: number; pendingReview: number } | null>(null);
   const [scanning, setScanning] = useState(false);
 
   const summary = useReconciliationSummary();
@@ -46,10 +46,11 @@ export default function ReconciliationPage() {
       <PageHeader
         title="Reconciliation"
         subtitle="Monitor payment vs ledger discrepancies and financial integrity"
-        action={
-          <Button onClick={handleScan} disabled={scanning} icon={<RefreshCw size={16} className={scanning ? 'animate-spin' : ''} />}>
-            {scanning ? 'Scanning...' : 'Run Reconciliation Scan'}
-          </Button>
+        actions={
+           <Button onClick={handleScan} disabled={scanning}>
+              <RefreshCw size={16} className={scanning ? 'animate-spin' : 'inline-block mr-1.5 align-middle'} />
+              {scanning ? 'Scanning...' : 'Run Reconciliation Scan'}
+            </Button>
         }
       />
 
@@ -80,7 +81,7 @@ export default function ReconciliationPage() {
           />
           <SummaryCard
             title="Last Reconciled"
-            value={summary.data.lastReconciled ? new Date(summary.data.lastReconciled).toLocaleDateString() : 'Never'}
+            value={summary.data.lastScanAt ? new Date(summary.data.lastScanAt).toLocaleDateString() : 'Never'}
             icon={<Search size={20} />}
             tone="slate"
           />
@@ -102,8 +103,8 @@ export default function ReconciliationPage() {
                 <p className="text-2xl font-bold text-red-700">{scanResult.mismatched}</p>
               </div>
               <div className="rounded-lg border border-yellow-line bg-yellow-soft p-4">
-                <p className="text-sm text-yellow-600">Missing</p>
-                <p className="text-2xl font-bold text-yellow-700">{scanResult.missing}</p>
+                <p className="text-sm text-yellow-600">Pending Review</p>
+                <p className="text-2xl font-bold text-yellow-700">{scanResult.pendingReview}</p>
               </div>
             </div>
           </CardBody>
