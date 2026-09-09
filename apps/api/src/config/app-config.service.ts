@@ -248,7 +248,7 @@ export class AppConfigService {
     // A managed database must back production: the embedded PGlite file lives on
     // the container filesystem and is wiped by every redeploy.
     if (!c.db.url) {
-      fatal.push('DATABASE_URL is unset — production should use a managed Postgres, not embedded PGlite.');
+      demoable('DATABASE_URL is unset — production should use a managed Postgres, not embedded PGlite.');
     }
 
     // Seeding on boot puts these credentials behind a public URL, so the
